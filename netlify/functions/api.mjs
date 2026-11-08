@@ -201,7 +201,8 @@ async function handleAI(req, u) {
   const content = [];
   for (const im of (b.images || []).slice(0, 2)) content.push({ type: "image", source: { type: "base64", media_type: im.media_type, data: im.data } });
   content.push({ type: "text", text: String(b.prompt || "").slice(0, 20000) });
-  const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+  const base = (process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/+$/, "");
+  const r = await fetch(base + "/v1/messages", { method: "POST", headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({ model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5", max_tokens: 1200, messages: [{ role: "user", content }] }) });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) return fail(r.status === 429 ? "rate_limited" : "upstream_error", (j.error && j.error.message) || "AI error", 502);
