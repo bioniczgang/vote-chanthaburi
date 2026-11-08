@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>โหวตกันเถอะ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&family=Anuphan:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js" defer></script>
+<style>
+/* Layout: one column app — header, tabs, activity cards with vote bars, live chat docked at the bottom. Candy palette. */
+:root{
+  --bg:#fff6fa; --surface:#ffffff; --ink:#2c1a33; --muted:#7d6886; --line:#f2dbe8;
+  --accent:#ff4f8b; --accent-ink:#ffffff; --boost:#f5a524; --ok:#14a37f; --warn:#e5484d;
+  --soft:#ffe8f1; --soft2:#f7f0ff;
+  --display:"Mitr","Anuphan",system-ui,sans-serif;
+  --body:"Anuphan","Mitr",system-ui,sans-serif;
+  --r:18px; --shadow:0 6px 24px -12px rgba(160,40,100,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b1220; --surface:#261a2d; --ink:#f8eefa; --muted:#bba7c5; --line:#3b2b45;
+    --accent:#ff6b9e; --accent-ink:#1b1220; --boost:#ffbe4d; --ok:#3ccf9f; --warn:#ff6b6f;
+    --soft:#3a2033; --soft2:#2e2240; --shadow:0 6px 24px -12px rgba(0,0,0,.6); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b1220; --surface:#261a2d; --ink:#f8eefa; --muted:#bba7c5; --line:#3b2b45;
+  --accent:#ff6b9e; --accent-ink:#1b1220; --boost:#ffbe4d; --ok:#3ccf9f; --warn:#ff6b6f;
+  --soft:#3a2033; --soft2:#2e2240; --shadow:0 6px 24px -12px rgba(0,0,0,.6); color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;
+  background-image:radial-gradient(circle at 10% 0%,var(--soft) 0,transparent 40%),radial-gradient(circle at 95% 10%,var(--soft2) 0,transparent 35%);background-attachment:fixed}
+h1,h2,h3,h4{font-family:var(--display);font-weight:500;margin:0;text-wrap:balance;line-height:1.25}
+button,input,select,textarea{font:inherit;color:inherit}
+img{max-width:100%}
+.wrap{max-width:980px;margin:0 auto;padding:0 16px}
+.muted{color:var(--muted)}
+.small{font-size:.86rem}
+.num{font-variant-numeric:tabular-nums}
+.hide{display:none!important}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 60%,transparent);outline-offset:2px}
+
+/* buttons & inputs */
+.btn{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:.5rem 1rem;cursor:pointer;
+  display:inline-flex;align-items:center;gap:.4rem;font-weight:500;transition:transform .12s,background .15s,border-color .15s;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn:active{transform:scale(.96)}
+.btn[disabled]{opacity:.5;cursor:not-allowed;transform:none}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.pri:hover{filter:brightness(1.06)}
+.btn.boost{background:color-mix(in srgb,var(--boost) 18%,var(--surface));border-color:color-mix(in srgb,var(--boost) 55%,transparent)}
+.btn.done{background:color-mix(in srgb,var(--ok) 16%,var(--surface));border-color:color-mix(in srgb,var(--ok) 50%,transparent);color:var(--ok)}
+.btn.danger{color:var(--warn)}
+.btn.sm{padding:.3rem .7rem;font-size:.85rem}
+.btn.block{width:100%;justify-content:center}
+label{display:grid;gap:.3rem;font-size:.9rem;color:var(--muted)}
+input[type=text],input[type=password],input[type=number],input[type=datetime-local],select,textarea{
+  width:100%;border:1.5px solid var(--line);background:var(--bg);border-radius:12px;padding:.6rem .8rem;color:var(--ink)}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none}
+textarea{resize:vertical;min-height:70px}
+.check{display:flex;align-items:center;gap:.5rem;color:var(--ink);font-size:.95rem}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+@media (max-width:560px){.grid2{grid-template-columns:1fr}}
+.stack{display:grid;gap:.8rem}
+.row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.spacer{flex:1}
+
+.card{background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:1.1rem;box-shadow:var(--shadow)}
+.chip{display:inline-flex;align-items:center;gap:.3rem;border-radius:999px;padding:.15rem .6rem;font-size:.8rem;background:var(--soft);color:var(--ink);white-space:nowrap}
+.chip.live{background:color-mix(in srgb,var(--ok) 18%,var(--surface));color:var(--ok)}
+.chip.live::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pulse 1.4s infinite}
+.chip.up{background:color-mix(in srgb,var(--boost) 20%,var(--surface))}
+.chip.end{background:var(--soft2);color:var(--muted)}
+@keyframes pulse{50%{opacity:.25}}
+
+/* header */
+header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(10px);border-bottom:1.5px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;gap:.6rem;padding-top:.6rem;padding-bottom:.6rem;flex-wrap:wrap}
+.brand{font-family:var(--display);font-size:1.25rem;font-weight:600;display:flex;align-items:center;gap:.4rem}
+.brand .dot{width:30px;height:30px;border-radius:10px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:1rem}
+.me{display:flex;align-items:center;gap:.4rem;border:1.5px solid var(--line);border-radius:999px;padding:.2rem .7rem .2rem .25rem;background:var(--surface)}
+.av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--soft);font-size:1.05rem;flex:none}
+.bal{font-weight:600;color:color-mix(in srgb,var(--boost) 75%,var(--ink))}
+nav.tabs{display:flex;gap:.3rem;padding:.7rem 0 .2rem;overflow-x:auto}
+nav.tabs button{border:0;background:transparent;padding:.5rem .9rem;border-radius:999px;cursor:pointer;font-weight:500;color:var(--muted);white-space:nowrap}
+nav.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+
+/* hero */
+.hero{display:flex;align-items:flex-end;gap:1rem;flex-wrap:wrap;padding:1.2rem 0 .6rem}
+.hero h1{font-size:clamp(1.6rem,4vw,2.3rem);font-weight:600}
+.stats{display:flex;gap:.5rem;flex-wrap:wrap}
+.stat{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:.45rem .8rem;font-size:.85rem;color:var(--muted)}
+.stat b{font-family:var(--display);color:var(--ink);font-size:1.1rem;margin-right:.2rem}
+.announce{border-radius:14px;padding:.7rem 1rem;background:color-mix(in srgb,var(--boost) 16%,var(--surface));border:1.5px dashed color-mix(in srgb,var(--boost) 60%,transparent);margin:.4rem 0 1rem}
+
+/* polls */
+.polls{display:grid;gap:1.1rem;padding-bottom:1.2rem}
+.poll{position:relative;overflow:hidden;padding:0}
+.poll .stripe{height:8px;background:var(--t)}
+.poll .in{padding:1.1rem 1.15rem 1.15rem;display:grid;gap:.85rem}
+.poll .head{display:flex;gap:.8rem;align-items:flex-start}
+.poll .pe{font-size:2rem;width:56px;height:56px;border-radius:16px;display:grid;place-items:center;flex:none;background:color-mix(in srgb,var(--t) 16%,var(--surface))}
+.poll h2{font-size:1.25rem}
+.poll .desc{color:var(--muted);margin:.15rem 0 .35rem;white-space:pre-wrap}
+.cd{font-family:var(--display);font-variant-numeric:tabular-nums;font-size:.92rem}
+.winner{border-radius:14px;padding:.75rem .9rem;background:linear-gradient(100deg,color-mix(in srgb,var(--boost) 30%,var(--surface)),color-mix(in srgb,var(--t) 18%,var(--surface)));display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.winner .tro{font-size:1.6rem}
+.winner b{font-family:var(--display);font-size:1.05rem}
+.opts{display:grid;gap:.6rem}
+.opt{border:1.5px solid var(--line);border-radius:16px;padding:.7rem .8rem;display:grid;gap:.45rem;background:var(--bg);transition:border-color .2s}
+.opt.mine{border-color:var(--t);background:color-mix(in srgb,var(--t) 7%,var(--bg))}
+.opt.win{border-color:var(--boost)}
+.opt .l1{display:flex;align-items:center;gap:.55rem}
+.opt .oe{font-size:1.35rem;width:34px;text-align:center;flex:none}
+.opt .lab{font-weight:600;flex:1;min-width:0;overflow-wrap:anywhere}
+.opt .lab small{display:block;font-weight:400;color:var(--muted);font-size:.82rem}
+.opt .score{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.opt .score b{font-family:var(--display);font-size:1.15rem}
+.bar{height:14px;border-radius:999px;background:color-mix(in srgb,var(--line) 70%,transparent);overflow:hidden;display:flex}
+.seg{height:100%;width:0;transition:width .9s cubic-bezier(.2,.9,.25,1)}
+.seg.n{background:var(--t);background-image:linear-gradient(90deg,transparent,rgba(255,255,255,.28))}
+.seg.b{background:var(--boost);background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.28) 0 6px,transparent 6px 12px)}
+@media (prefers-reduced-motion:reduce){.seg{transition:none}.chip.live::before{animation:none}}
+.opt .l3{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.voters{display:flex;flex-wrap:wrap;gap:.25rem;flex:1;min-width:0}
+.vchip{font-size:.75rem;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:.05rem .45rem;white-space:nowrap}
+.veil{filter:blur(5px);pointer-events:none;user-select:none}
+.legend{display:flex;gap:.8rem;font-size:.78rem;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:.25rem;vertical-align:-1px}
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--muted)}
+.empty .big{font-size:2.6rem}
+
+/* chat */
+#chat{margin:1rem 0 6rem;padding:0;overflow:hidden;display:flex;flex-direction:column}
+.chathead{display:flex;align-items:center;gap:.6rem;padding:.8rem 1rem;border-bottom:1.5px solid var(--line);flex-wrap:wrap}
+.chathead h3{font-size:1.1rem}
+.online{display:flex;gap:.35rem;overflow-x:auto;padding:.55rem 1rem;border-bottom:1.5px solid var(--line);background:var(--bg);min-height:52px;align-items:center}
+.on{display:flex;align-items:center;gap:.3rem;border-radius:999px;background:var(--surface);border:1px solid var(--line);padding:.15rem .6rem .15rem .2rem;font-size:.82rem;white-space:nowrap;position:relative}
+.on .av{width:26px;height:26px;font-size:.9rem;position:relative}
+.on .av::after{content:"";position:absolute;right:-1px;bottom:-1px;width:9px;height:9px;border-radius:50%;background:var(--ok);border:2px solid var(--surface)}
+.on.typing{border-color:var(--accent)}
+.msgs{height:min(56vh,460px);overflow-y:auto;padding:.8rem 1rem;display:flex;flex-direction:column;gap:.55rem;scroll-behavior:smooth}
+.msg{display:flex;gap:.5rem;align-items:flex-end;max-width:86%}
+.msg.me{align-self:flex-end;flex-direction:row-reverse}
+.msg .bub{background:var(--bg);border:1px solid var(--line);border-radius:16px 16px 16px 4px;padding:.4rem .75rem;min-width:0}
+.msg.me .bub{background:color-mix(in srgb,var(--accent) 16%,var(--surface));border-color:color-mix(in srgb,var(--accent) 35%,transparent);border-radius:16px 16px 4px 16px}
+.msg .meta{font-size:.74rem;color:var(--muted);display:flex;gap:.35rem;align-items:center}
+.msg .meta b{color:var(--ink);font-weight:600}
+.adm{background:var(--ink);color:var(--bg);border-radius:6px;padding:0 .3rem;font-size:.66rem}
+.msg .txt{white-space:pre-wrap;overflow-wrap:anywhere}
+.msg .txt.big{font-size:2.1rem;line-height:1.2}
+.msg .quote{font-size:.78rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:.4rem;margin:.15rem 0 .2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
+.msg .acts{display:flex;gap:.1rem;opacity:0;transition:opacity .15s}
+.msg:hover .acts,.msg:focus-within .acts{opacity:1}
+@media (hover:none){.msg .acts{opacity:.7}}
+.msg .acts button{border:0;background:transparent;cursor:pointer;font-size:.78rem;color:var(--muted);padding:.2rem .3rem;border-radius:6px}
+.msg .acts button:hover{background:var(--soft)}
+.sysline{align-self:center;font-size:.78rem;color:var(--muted)}
+.typingline{font-size:.78rem;color:var(--muted);padding:0 1rem .3rem;min-height:1.2rem}
+.composer{border-top:1.5px solid var(--line);padding:.6rem .8rem;display:grid;gap:.4rem;position:relative}
+.replybar{display:flex;align-items:center;gap:.4rem;font-size:.82rem;background:var(--soft);border-radius:10px;padding:.3rem .6rem}
+.replybar span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inrow{display:flex;gap:.4rem;align-items:center}
+.inrow input{border-radius:999px}
+.ebtn{width:42px;height:42px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);cursor:pointer;font-size:1.25rem;flex:none}
+.picker{position:absolute;bottom:calc(100% + 6px);left:.8rem;right:.8rem;max-width:380px;background:var(--surface);border:1.5px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:.5rem;z-index:5}
+.picker .ptabs{display:flex;gap:.25rem;margin-bottom:.35rem}
+.picker .ptabs button{border:0;background:var(--bg);border-radius:999px;padding:.2rem .6rem;cursor:pointer;font-size:.8rem}
+.picker .ptabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.picker .eg{display:grid;grid-template-columns:repeat(8,1fr);gap:.1rem;max-height:200px;overflow-y:auto}
+.picker .eg button{border:0;background:transparent;font-size:1.45rem;padding:.2rem;border-radius:8px;cursor:pointer}
+.picker .eg button:hover{background:var(--soft);transform:scale(1.15)}
+.picker .eg.stk{grid-template-columns:repeat(5,1fr)}
+.picker .eg.stk button{font-size:2rem}
+.fab{position:fixed;right:16px;bottom:16px;z-index:30;width:58px;height:58px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);font-size:1.5rem;box-shadow:0 10px 28px -8px color-mix(in srgb,var(--accent) 70%,transparent);cursor:pointer}
+.fab .badge{position:absolute;top:-3px;right:-3px;background:var(--ink);color:var(--bg);border-radius:999px;font-size:.72rem;padding:.05rem .4rem;font-weight:600}
+
+/* auth */
+.authwrap{min-height:100vh;display:grid;place-items:center;padding:24px 16px}
+.auth{width:100%;max-width:420px;display:grid;gap:1rem}
+.auth .logo{text-align:center}
+.auth .logo .dot{width:64px;height:64px;border-radius:20px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:2rem;margin:0 auto .5rem}
+.seg2{display:grid;grid-template-columns:1fr 1fr;background:var(--bg);border-radius:999px;padding:4px;border:1.5px solid var(--line)}
+.seg2 button{border:0;background:transparent;border-radius:999px;padding:.45rem;cursor:pointer;font-weight:500}
+.seg2 button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.avpick{display:flex;flex-wrap:wrap;gap:.3rem}
+.avpick button{width:40px;height:40px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);font-size:1.3rem;cursor:pointer}
+.avpick button[aria-pressed="true"]{border-color:var(--accent);background:var(--soft);transform:scale(1.08)}
+.err{color:var(--warn);font-size:.88rem;min-height:1.2em}
+
+/* topup */
+.pkgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.6rem}
+.pkg{border:1.5px solid var(--line);border-radius:16px;padding:.7rem;text-align:center;cursor:pointer;background:var(--bg)}
+.pkg[aria-pressed="true"]{border-color:var(--boost);background:color-mix(in srgb,var(--boost) 14%,var(--surface))}
+.pkg b{display:block;font-family:var(--display);font-size:1.3rem}
+.pkg .bonus{font-size:.75rem;color:var(--ok)}
+.paybox{display:grid;grid-template-columns:auto 1fr;gap:1rem;align-items:center;background:var(--bg);border-radius:16px;padding:.9rem;border:1.5px dashed var(--line)}
+@media (max-width:520px){.paybox{grid-template-columns:1fr;justify-items:center;text-align:center}}
+.qr{background:#fff;padding:8px;border-radius:12px;width:176px;height:176px}
+.qr img,.qr canvas{width:160px!important;height:160px!important}
+.hist{display:grid;gap:.5rem}
+.hrow{display:flex;align-items:center;gap:.6rem;border:1.5px solid var(--line);border-radius:14px;padding:.55rem .8rem;flex-wrap:wrap;background:var(--bg)}
+.st-pending{color:var(--boost)} .st-ok{color:var(--ok)} .st-no{color:var(--warn)}
+.balbig{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap}
+.balbig .v{font-family:var(--display);font-size:2.2rem;font-weight:600;color:color-mix(in srgb,var(--boost) 70%,var(--ink))}
+
+/* admin */
+.subtabs{display:flex;gap:.35rem;flex-wrap:wrap;margin:1rem 0}
+.subtabs button{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:.35rem .85rem;cursor:pointer}
+.subtabs button[aria-selected="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.alist{display:grid;gap:.6rem;padding-bottom:1rem}
+.arow{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap}
+.arow .t{flex:1;min-width:180px}
+.tbl{width:100%;border-collapse:collapse;font-size:.9rem}
+.tbl th,.tbl td{text-align:left;padding:.5rem .4rem;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl th{color:var(--muted);font-weight:500}
+.tblwrap{overflow-x:auto}
+.slip{width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid var(--line);cursor:zoom-in}
+.optrow{display:grid;grid-template-columns:64px 1fr 1fr auto;gap:.4rem;align-items:center}
+@media (max-width:560px){.optrow{grid-template-columns:56px 1fr auto}.optrow .od{grid-column:1/-1}}
+.themes{display:flex;gap:.4rem}
+.themes button{width:32px;height:32px;border-radius:50%;border:3px solid transparent;cursor:pointer}
+.themes button[aria-pressed="true"]{border-color:var(--ink)}
+
+/* modal / toast */
+.modal{position:fixed;inset:0;z-index:60;background:rgba(30,10,30,.45);display:grid;place-items:center;padding:16px;overflow-y:auto}
+.modal .box{background:var(--surface);border-radius:22px;padding:1.2rem;width:100%;max-width:520px;max-height:calc(100vh - 32px);overflow-y:auto;display:grid;gap:.9rem;border:1.5px solid var(--line)}
+.modal .box.wide{max-width:720px}
+.toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;z-index:80;display:grid;gap:.4rem;width:min(92vw,420px)}
+.toast{background:var(--ink);color:var(--bg);border-radius:14px;padding:.6rem 1rem;box-shadow:var(--shadow);animation:tin .25s}
+@keyframes tin{from{transform:translateY(10px);opacity:0}}
+.notice{border-radius:14px;padding:.7rem 1rem;background:var(--soft2);border:1.5px solid var(--line);font-size:.9rem}
+.center{min-height:70vh;display:grid;place-items:center;text-align:center;padding:16px}
+.spin{width:36px;height:36px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);animation:sp 0.9s linear infinite;margin:0 auto 1rem}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ---- v2: admin console, shop, slip checks ---- */
+.wrap{max-width:1100px}
+.adm-layout{display:grid;grid-template-columns:220px 1fr;gap:1.1rem;align-items:start;padding:1rem 0}
+.side{position:sticky;top:118px;display:grid;gap:.25rem;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:.5rem}
+.side button{border:0;background:transparent;text-align:left;padding:.55rem .8rem;border-radius:12px;cursor:pointer;font-weight:500;color:var(--muted);display:flex;align-items:center;gap:.5rem}
+.side button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.side button .cnt{margin-left:auto;background:var(--accent);color:var(--accent-ink);border-radius:999px;font-size:.72rem;padding:0 .45rem}
+@media (max-width:780px){.adm-layout{grid-template-columns:1fr}.side{position:static;display:flex;overflow-x:auto}.side button{white-space:nowrap}}
+.adm-main{display:grid;gap:1rem;min-width:0}
+.adm-main h2{font-size:1.35rem}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.7rem}
+.kpi{background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:.8rem .95rem;display:grid;gap:.15rem}
+.kpi span{color:var(--muted);font-size:.84rem}
+.kpi b{font-family:var(--display);font-size:1.6rem;font-weight:600;font-variant-numeric:tabular-nums}
+.kpi.warn{border-color:color-mix(in srgb,var(--boost) 60%,transparent);background:color-mix(in srgb,var(--boost) 10%,var(--surface))}
+.checks{list-style:none;margin:0;padding:0;display:grid;gap:.2rem;font-size:.84rem}
+.checks li::before{content:"✓ ";color:var(--ok);font-weight:700}
+.checks li.no::before{content:"✕ ";color:var(--warn)}
+.checks li.no{color:var(--warn)}
+.vbadge{display:inline-flex;align-items:center;gap:.3rem;border-radius:999px;padding:.12rem .6rem;font-size:.78rem;font-weight:600}
+.vbadge.pass{background:color-mix(in srgb,var(--ok) 18%,var(--surface));color:var(--ok)}
+.vbadge.fail{background:color-mix(in srgb,var(--warn) 15%,var(--surface));color:var(--warn)}
+.vbadge.run{background:var(--soft2);color:var(--muted)}
+.methods{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.method{border:1.5px solid var(--line);border-radius:16px;padding:.8rem;cursor:pointer;background:var(--bg);display:flex;gap:.6rem;align-items:center;text-align:left}
+.method[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--surface))}
+.method .mi{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-weight:700;font-size:.8rem;flex:none;color:#fff}
+.slipprev{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap}
+.slipprev img{width:90px;border-radius:10px;border:1px solid var(--line)}
+.shopgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.9rem;padding-bottom:1rem}
+.item{padding:0;overflow:hidden;display:flex;flex-direction:column}
+.item .pic{aspect-ratio:4/3;display:grid;place-items:center;font-size:3.2rem;background:linear-gradient(135deg,var(--soft),var(--soft2));overflow:hidden}
+.item .pic img{width:100%;height:100%;object-fit:cover}
+.item .body{padding:.8rem .9rem .95rem;display:grid;gap:.4rem;flex:1;align-content:start}
+.item h3{font-size:1.05rem}
+.price{font-family:var(--display);font-size:1.25rem;font-weight:600;color:color-mix(in srgb,var(--boost) 75%,var(--ink))}
+.soldout{opacity:.55}
+.badgeE{font-size:.9em;margin-left:.15rem}
+.filters{display:flex;gap:.5rem;flex-wrap:wrap;align-items:end}
+.filters label{min-width:150px}
+.pinbox{max-width:360px;margin:3rem auto;display:grid;gap:.8rem;text-align:center}
+.pinbox input{text-align:center;font-size:1.5rem;letter-spacing:.4em}
+.tag{display:inline-block;border-radius:6px;padding:0 .4rem;font-size:.74rem;background:var(--soft2);white-space:nowrap}
+.tag.t-top{background:color-mix(in srgb,var(--ok) 16%,var(--surface))}
+.tag.t-boost{background:color-mix(in srgb,var(--boost) 22%,var(--surface))}
+.tag.t-shop{background:color-mix(in srgb,var(--accent) 16%,var(--surface))}
+.tag.t-adm{background:var(--ink);color:var(--bg)}
+/* ---- school vote ---- */
+.lb{display:grid;gap:.5rem}
+.lbrow{display:grid;grid-template-columns:46px 1fr auto;gap:.7rem;align-items:center;padding:.6rem .8rem;border-radius:16px;background:var(--bg);border:1.5px solid var(--line);position:relative;overflow:hidden}
+.lbrow>*{position:relative}
+.lbrow .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:color-mix(in srgb,var(--c) 22%,transparent);transition:width 1s cubic-bezier(.2,.9,.25,1)}
+.lbrow .rk{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-family:var(--display);font-weight:600;font-size:1.15rem;color:#fff;background:var(--c);box-shadow:0 4px 12px -4px var(--c)}
+.lbrow.top .rk{font-size:1.5rem}
+.lbrow .nm{font-weight:600;overflow-wrap:anywhere}
+.lbrow .nm small{display:block;font-weight:400;color:var(--muted)}
+.lbrow .vt{text-align:right;font-family:var(--display);font-variant-numeric:tabular-nums}
+.lbrow .vt b{font-size:1.3rem;display:block}
+.lbrow.r1{border-color:#f5b301}
+@media (prefers-reduced-motion:reduce){.lbrow .fill{transition:none}}
+.dchips{display:flex;gap:.35rem;overflow-x:auto;padding-bottom:.2rem}
+.dchip{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:.35rem .8rem;cursor:pointer;white-space:nowrap;font-weight:500;display:inline-flex;gap:.35rem;align-items:center}
+.dchip i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.dchip[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:#fff}
+.dchip[aria-pressed="true"] i{background:#fff}
+.sclist{max-height:min(62vh,560px);overflow-y:auto;display:grid;gap:.4rem;padding-right:.2rem;align-content:start}
+.schead{position:sticky;top:0;z-index:1;background:var(--surface);padding:.35rem .1rem;font-family:var(--display);font-weight:500;display:flex;gap:.4rem;align-items:center}
+.schead i{width:12px;height:12px;border-radius:4px;background:var(--c)}
+.scrow{display:grid;grid-template-columns:1fr auto auto;gap:.6rem;align-items:center;border:1.5px solid var(--line);border-radius:14px;padding:.55rem .75rem;background:var(--bg);border-left:5px solid var(--c)}
+.scrow.mine{background:color-mix(in srgb,var(--c) 12%,var(--bg));border-color:var(--c)}
+.scrow .nm{font-weight:500;overflow-wrap:anywhere}
+.scrow .nm small{display:block;color:var(--muted);font-weight:400}
+.scrow .cnt{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.85rem;white-space:nowrap}
+.myschool{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;border-radius:16px;padding:.8rem 1rem;background:linear-gradient(100deg,color-mix(in srgb,var(--c) 22%,var(--surface)),var(--surface));border:1.5px solid color-mix(in srgb,var(--c) 50%,transparent)}
+.bigscr{position:fixed;inset:0;z-index:70;background:radial-gradient(circle at 15% 10%,#ff4f8b55,transparent 40%),radial-gradient(circle at 90% 20%,#3b8cff55,transparent 45%),radial-gradient(circle at 50% 100%,#14b39455,transparent 50%),#170c24;color:#fff;overflow:auto;padding:24px clamp(16px,4vw,56px)}
+.bigscr h1{font-size:clamp(1.6rem,4vw,3rem);font-weight:600}
+.bigscr .lbrow{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);padding:.8rem 1rem}
+.bigscr .lbrow .nm{font-size:clamp(1rem,2.2vw,1.6rem)}
+.bigscr .lbrow .nm small{color:rgba(255,255,255,.7)}
+.bigscr .lbrow .vt b{font-size:clamp(1.3rem,3vw,2.3rem)}
+.bigscr .lbrow .rk{width:clamp(42px,5vw,64px);height:clamp(42px,5vw,64px);font-size:clamp(1.1rem,2.5vw,1.8rem)}
+.bigscr .lbrow{grid-template-columns:auto 1fr auto}
+.bigscr .muted{color:rgba(255,255,255,.7)}
+.bigscr .stat{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:rgba(255,255,255,.75)}
+.bigscr .stat b{color:#fff}
+.bigscr .dlead{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.5rem}
+.bigscr .dlead div{background:rgba(255,255,255,.06);border-radius:12px;padding:.5rem .7rem;border-left:4px solid var(--c);font-size:.9rem}
+</style>
+</head>
+<body>
+<div id="app"><div class="center"><div><div class="spin"></div><p class="muted">กำลังโหลดเว็บโหวต…</p></div></div></div>
+<div id="modalRoot"></div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* ===== Netlify backend connector: provides claude.use("db"|"user"|"room"|"assets"|"sample") + claude.auth ===== */
+(function(){
+const TK="vt_token";
+const lsG=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lsS=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
+let token=lsG(TK);
+async function api(path,body,opts={}){
+  const headers={};if(token)headers.authorization="Bearer "+token;
+  let payload;if(body instanceof Blob){payload=body;headers["content-type"]=body.type||"application/octet-stream"}else if(body!==undefined){payload=JSON.stringify(body);headers["content-type"]="application/json"}
+  let r;try{r=await fetch("/api/"+path,{method:opts.method||(body!==undefined?"POST":"GET"),headers,body:payload})}catch(e){throw{code:"unavailable",message:"network"}}
+  let j=null;try{j=await r.json()}catch(e){}
+  if(!r.ok){if(r.status===401&&j&&j.code==="unauth"&&token){token=null;lsS(TK,null)}throw{code:(j&&j.code)||"unavailable",message:(j&&j.error)||r.statusText,status:r.status}}
+  return j}
+let ME=null;
+const meP=(async()=>{if(!token)return null;try{ME=await api("auth");return ME}catch(e){return null}})();
+const cfgP=api("config").catch(()=>({ai:false}));
+
+/* ---- live sync (polling) ---- */
+const subs=new Map();let pres=null,presDirty=false,presSent=0,peersWanted=false,timer=null,inflight=false,peerList=[],peerFns=new Set(),lastSync=0;
+const meta={fromCache:false,hasPendingWrites:false};
+function docSnap(path,v){const id=path.split("/").pop();return{id,exists:v!=null,data:()=>v==null?undefined:v,metadata:meta}}
+function colSnap(map){const docs=Object.entries(map||{}).map(([id,v])=>({id,exists:true,data:()=>v,metadata:meta}));return{docs,size:docs.length,empty:!docs.length,docChanges:()=>[],metadata:meta}}
+function schedule(ms){clearTimeout(timer);timer=setTimeout(sync,ms)}
+async function sync(){if(inflight){schedule(300);return}inflight=true;
+  try{const list=[...subs.values()];const known={};list.forEach(s=>{if(s.h)known[s.key]=s.h});
+    const sendPres=ME&&pres&&(presDirty||Date.now()-presSent>12000);
+    const res=await api("db",{op:"sync",subs:list.map(s=>({t:s.t,p:s.p})),known,pres:sendPres?pres:undefined,peers:peersWanted&&!!ME});
+    if(sendPres){presDirty=false;presSent=Date.now()}
+    for(const [key,o] of Object.entries(res.r||{})){const s=subs.get(key);if(!s)continue;s.h=o.h;s.v=o.v;s.has=true;const snap=s.t==="c"?colSnap(o.v):docSnap(s.p,o.v);s.fns.forEach(f=>{try{f(snap)}catch(e){console.error(e)}})}
+    if(res.peers){const now=Date.now();const old=new Map(peerList.map(p=>[p.peer,p]));
+      peerList=res.peers.map(x=>{const prev=old.get(x.uid);const same=prev&&JSON.stringify(prev.presence)===JSON.stringify(x.p);return same?prev:Object.freeze({peer:x.uid,by:x.uid,isMe:!!ME&&x.uid===ME.uid,sameTab:!!ME&&x.uid===ME.uid,kind:"viewer",guest:false,presence:Object.freeze(x.p||{}),updatedAt:now})});
+      if(ME&&!peerList.some(p=>p.isMe))peerList.push(Object.freeze({peer:ME.uid,by:ME.uid,isMe:true,sameTab:true,kind:"viewer",guest:false,presence:Object.freeze(pres||{}),updatedAt:now}));
+      const ch={peers:peerList,joined:[],left:[],updated:[]};peerFns.forEach(f=>{try{f(ch)}catch(e){console.error(e)}})}
+    lastSync=Date.now()}
+  catch(e){console.warn("sync",e)}
+  finally{inflight=false;schedule(document.hidden?12000:2500)}}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)schedule(50)});
+function subscribe(t,p,fn){const key=t+":"+p;let s=subs.get(key);if(!s){s={key,t,p,fns:new Set(),h:null,v:null,has:false};subs.set(key,s)}s.fns.add(fn);
+  if(s.has)setTimeout(()=>fn(t==="c"?colSnap(s.v):docSnap(p,s.v)),0);schedule(30);return()=>{s.fns.delete(fn);if(!s.fns.size)subs.delete(key)}}
+function bumpLocal(path,data,del){const seg=path.split("/");const col=seg.slice(0,-1).join("/"),id=seg[seg.length-1];
+  const s=subs.get("c:"+col);if(s&&s.has){const v={...(s.v||{})};if(del)delete v[id];else v[id]=data;s.v=v;s.h=null}
+  const d=subs.get("d:"+path);if(d){d.v=del?null:data;d.h=null}schedule(150)}
+
+const db={
+  doc(path){return{id:path.split("/").pop(),path,
+    async get(){const r=await api("db",{op:"get",path});return docSnap(path,r.exists?r.data:null)},
+    async set(data){await api("db",{op:"set",path,data});bumpLocal(path,data)},
+    async update(data){await api("db",{op:"update",path,data});schedule(100)},
+    async delete(){await api("db",{op:"delete",path});bumpLocal(path,null,true)},
+    onSnapshot(next,err){return subscribe("d",path,next)},
+    collection(sub){return db.collection(path+"/"+sub)}}},
+  collection(path){return{path,doc:id=>db.doc(path+"/"+(id||Math.random().toString(36).slice(2,12))),
+    onSnapshot(next,err){return subscribe("c",path,next)},
+    async get(){return new Promise(res=>{const un=subscribe("c",path,s=>{un();res(s)})})},
+    where(){return this},orderBy(){return this},limit(){return this}}}
+};
+const user={id:async()=>ME?ME.uid:null,isOwner:()=>!!ME&&ME.role==="admin",canEdit:()=>!!ME&&ME.role==="admin",can:()=>!!ME,me:async()=>ME};
+const room={presence(patch){pres={...(pres||{})};for(const[k,v]of Object.entries(patch||{})){if(v===null)delete pres[k];else pres[k]=v}presDirty=true;schedule(ME?400:5000);return Promise.resolve()},
+  onPeers(fn){peerFns.add(fn);peersWanted=true;schedule(30);if(peerList.length)setTimeout(()=>fn({peers:peerList,joined:peerList,left:[],updated:[]}),0);return()=>peerFns.delete(fn)},
+  peers:()=>peerList,connected:()=>Date.now()-lastSync<15000,on:()=>()=>{},emit:()=>Promise.resolve()};
+const assets={async upload(blob){return await api("asset",blob)}};
+async function toB64(blob){let b=blob;try{const bmp=await createImageBitmap(blob);const sc=Math.min(1,1600/Math.max(bmp.width,bmp.height));const c=document.createElement("canvas");c.width=Math.round(bmp.width*sc);c.height=Math.round(bmp.height*sc);c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);b=await new Promise(r=>c.toBlob(r,"image/jpeg",.9))}catch(e){}
+  const buf=new Uint8Array(await b.arrayBuffer());let s="";for(let i=0;i<buf.length;i+=0x8000)s+=String.fromCharCode.apply(null,buf.subarray(i,i+0x8000));return{media_type:b.type||"image/jpeg",data:btoa(s)}}
+function makeSample(){const sample=async(input,opts={})=>{const imgs=opts.images?await Promise.all([].concat(opts.images instanceof FileList?[...opts.images]:opts.images).map(toB64)):[];
+    const prompt=typeof input==="string"?input:input.map(m=>m.role+": "+m.content).join("\n\n");
+    const r=await api("ai",{prompt,images:imgs});if(opts.onText)opts.onText({text:r.text,delta:r.text});return{text:r.text,truncated:false,modelTierApplied:"default"}};
+  sample.json=async(input,opts)=>{const{text}=await sample(input,opts);const m=text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);try{return JSON.parse(m?m[0]:text)}catch(e){throw{code:"invalid_json",message:"bad json",text}}};
+  sample.limits=async()=>({maxPromptBytes:262144,images:{maxCount:2,maxInputBytes:20e6,mediaTypes:["image/jpeg","image/png","image/webp"]}});return sample}
+
+const authApi={
+  me:()=>meP,
+  async register(o){const r=await api("auth",{action:"register",...o});token=r.token;lsS(TK,token)},
+  async login(username,password){const r=await api("auth",{action:"login",username,password});token=r.token;lsS(TK,token)},
+  async changePassword(old,password){const r=await api("auth",{action:"changePassword",old,password});token=r.token;lsS(TK,token)},
+  async adminReset(uid,password){await api("auth",{action:"adminReset",uid,password})},
+  logout(){token=null;lsS(TK,null)},
+  async publicSettings(){const r=await api("db",{op:"sync",subs:[{t:"d",p:"settings/main"}],known:{}});const o=r.r&&r.r["d:settings/main"];return(o&&o.v)||{}}
+};
+window.claude={auth:authApi,use:async name=>{await meP;
+  if(name==="db")return ME?db:null;if(name==="user")return user;if(name==="room")return ME?room:null;if(name==="assets")return ME?assets:null;
+  if(name==="sample"){const c=await cfgP;return ME&&ME.role==="admin"&&c.ai?makeSample():null}return null}};
+})();
+
+</script>
+<script>
+"use strict";
+/* ================= constants ================= */
+const AVATARS="🐰 🐱 🐶 🐻 🐼 🐨 🦊 🐯 🐸 🐥 🐧 🦄 🐹 🐷 🐮 🐙 🦋 🐳 🌸 🍓 🧁 🍑 ⭐ 🌈".split(" ");
+const EMOJI_SETS={
+  "หน้ายิ้ม":"😀 😁 😂 🤣 😊 😍 🥰 😘 😚 😜 🤪 😎 🤩 🥳 😇 🙃 😉 😋 😏 😴 🥺 😭 😤 😱 🤗 🤭 🫣 😳 🤔 🙄 😅 😆 🫠 😌 🤤 😵‍💫".split(" "),
+  "หัวใจ":"❤️ 🧡 💛 💚 💙 💜 🩷 🤍 💖 💕 💞 💓 💗 💘 💝 💌 🫶 😻 💐 🌹 ✨ ⭐ 🌟 💫".split(" "),
+  "น่ารัก":"🐰 🐱 🐶 🐻 🐼 🐨 🦊 🐯 🐸 🐥 🐣 🐧 🦄 🐹 🐷 🐙 🦋 🐳 🌸 🌷 🌻 🍀 🍓 🍑 🍉 🧋 🍰 🧁 🍩 🍭 🎀 🧸 🌈 ☁️ 🌙 ☀️".split(" "),
+  "ท่าทาง":"👍 👏 🙌 🙏 💪 ✌️ 🤞 👋 👌 🤟 🫰 👀 🔥 🎉 🎊 🎈 🎁 🏆 👑 💎 💯 ✅ ❗ ❓ 💤 🎵 📣 🚀".split(" ")
+};
+const STICKERS="🥳 😍 🤩 🥰 😂 😭 🙏 🔥 💖 🎉 🏆 👑 🐰 🐱 🐻 🦄 🌈 💯 👏 ✨".split(" ");
+const THEMES={pink:"#ff4f8b",mint:"#14b394",sun:"#f59e0b",sky:"#3b8cff",grape:"#9a5cf6",coral:"#ff6f4f"};
+const DEFAULT_SETTINGS={siteName:"โหวตกันเถอะ",tagline:"ร่วมโหวตกิจกรรม ลุ้นผู้ชนะแบบเรียลไทม์",announcement:"",
+  payPromptpay:true,payTrue:true,
+  promptpay:"",accountName:"",bankName:"",bankAccount:"",bankInfo:"",truePhone:"",trueName:"",matchNames:"",
+  slipMaxAgeH:24,autoApprove:false,pricePerPoint:1,
+  packages:[{baht:50,pts:50},{baht:100,pts:110},{baht:300,pts:350},{baht:500,pts:600}],chatEnabled:true,adminUid:""};
+const ADMIN_TABS=[["dash","ภาพรวม"],["polls","กิจกรรมโหวต"],["schools","โหวตโรงเรียน"],["topups","เติมเงิน / ตรวจสลิป"],["shop","ร้านค้าเพชร"],["orders","คำสั่งซื้อ"],["members","สมาชิก"],["history","ประวัติทั้งหมด"],["settings","ตั้งค่า"]];
+
+/* ================= state ================= */
+const S={db:null,user:null,room:null,assets:null,sample:null,uid:null,isOwner:false,canWrite:true,
+  settings:{...DEFAULT_SETTINGS},polls:{},profiles:{},ballots:{},approvals:{},chats:{},shop:{},orders:{},deliveries:{},
+  myTopups:null,allTopups:{},orderInfo:{},myOrderInfo:null,verify:{},adminlog:{},
+  account:undefined,loggedIn:false,authMode:"login",adminPin:null,adminUnlocked:false,
+  tab:"polls",adminTab:"dash",peers:[],replyTo:null,prevW:{},lastStatus:"",loaded:{},
+  chatSeen:0,chatFirst:true,unread:0,chatVisible:false,typingTimer:null,stale:false,
+  autoMode:false,verifying:{},histFilter:{type:"all",q:""}};
+
+/* ================= utils ================= */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const clone=o=>JSON.parse(JSON.stringify(o||{}));
+const num=(v,d=0)=>{const n=Number(v);return Number.isFinite(n)?n:d};
+const fmtN=n=>Number(n||0).toLocaleString("th-TH");
+const fmtB=n=>Number(n||0).toLocaleString("th-TH",{maximumFractionDigits:2});
+const pad=n=>String(n).padStart(2,"0");
+const digits=s=>String(s||"").replace(/\D/g,"");
+function fmtDT(ms){if(!ms)return"-";const d=new Date(ms);return d.toLocaleString("th-TH",{day:"numeric",month:"short",year:"2-digit",hour:"2-digit",minute:"2-digit"})}
+function fmtClock(ms){const d=new Date(ms),now=new Date();const t=pad(d.getHours())+":"+pad(d.getMinutes());
+  return d.toDateString()===now.toDateString()?t:d.toLocaleDateString("th-TH",{day:"numeric",month:"short"})+" "+t}
+function toLocalInput(ms){if(!ms)return"";const d=new Date(ms);return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes())}
+function dur(ms){ms=Math.max(0,ms);const s=Math.floor(ms/1000),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),x=s%60;
+  return (d?d+" วัน ":"")+pad(h)+":"+pad(m)+":"+pad(x)}
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lsSet=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
+const ssGet=k=>{try{return sessionStorage.getItem(k)}catch(e){return null}};
+const ssSet=(k,v)=>{try{v==null?sessionStorage.removeItem(k):sessionStorage.setItem(k,v)}catch(e){}};
+function toast(msg,ms=2600){const t=document.createElement("div");t.className="toast";t.textContent=msg;$("#toasts").appendChild(t);setTimeout(()=>t.remove(),ms)}
+function prof(uid){return S.profiles[uid]||{nick:"สมาชิก",av:"🙂",username:""}}
+function isAdminUid(uid){return !!uid&&prof(uid).role==="admin"}
+function nickHTML(uid){const p=prof(uid),b=ledger().badge[uid];return esc(p.nick)+(b?`<span class="badgeE" title="ฉายาจากร้านค้า">${esc(b)}</span>`:"")}
+
+/* modal */
+function openModal(html,{wide=false,onMount}={}){const root=$("#modalRoot");
+  root.innerHTML=`<div class="modal" role="dialog" aria-modal="true"><div class="box ${wide?"wide":""}">${html}</div></div>`;
+  const m=$(".modal",root);m.addEventListener("mousedown",e=>{if(e.target===m)closeModal()});
+  onMount&&onMount($(".box",root));const f=$("input,select,textarea,button",root);f&&f.focus();}
+function closeModal(){$("#modalRoot").innerHTML=""}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#modalRoot").innerHTML){closeModal()}});
+function confirmBox(title,body,ok="ยืนยัน",danger=false){return new Promise(res=>{
+  openModal(`<h3>${esc(title)}</h3><div>${body}</div><div class="row" style="justify-content:flex-end"><button class="btn" id="cNo">ยกเลิก</button><button class="btn pri ${danger?"danger":""}" id="cOk">${esc(ok)}</button></div>`,
+  {onMount:b=>{$("#cNo",b).onclick=()=>{closeModal();res(false)};$("#cOk",b).onclick=()=>{closeModal();res(true)}}});})}
+async function copyText(t){try{await navigator.clipboard.writeText(t);toast("คัดลอกแล้ว")}catch(e){toast("คัดลอกไม่ได้ กดค้างที่ข้อความเพื่อคัดลอกเอง")}}
+
+/* per-document write queue */
+const Q={};
+function enqueue(path,fn){const p=(Q[path]||Promise.resolve()).then(fn);Q[path]=p.catch(()=>{});return p}
+function writeErr(e){console.warn(e);const c=e&&e.code;
+  if(c==="invalid_argument"){toast("บันทึกไม่ได้: บัญชีนี้ไม่มีสิทธิ์ทำรายการนี้ ลองออกจากระบบแล้วเข้าใหม่",4200)}
+  else if(c==="quota_exceeded")toast("พื้นที่ฐานข้อมูลเต็ม แจ้งแอดมินให้ล้างข้อมูลเก่า",4200);
+  else if(c==="resource_exhausted")toast("ส่งถี่เกินไป รอสักครู่แล้วลองใหม่");
+  else toast("เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง");}
+async function safeSet(path,data){try{await S.db.doc(path).set(data);return true}catch(e){
+  if(e&&e.code==="unavailable"){await new Promise(r=>setTimeout(r,600+Math.random()*800));try{await S.db.doc(path).set(data);return true}catch(e2){writeErr(e2);return false}}
+  writeErr(e);return false}}
+
+/* password hashing (PBKDF2) */
+async function hashPw(pw,salt){const enc=new TextEncoder();
+  if(!(crypto&&crypto.subtle)){let h=0;const s=salt+pw;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return "x"+h}
+  const key=await crypto.subtle.importKey("raw",enc.encode(pw),"PBKDF2",false,["deriveBits"]);
+  const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:enc.encode(salt),iterations:120000,hash:"SHA-256"},key,256);
+  return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,"0")).join("")}
+
+/* PromptPay QR payload (EMVCo) */
+function ppPayload(id,amount){const f=(t,v)=>t+String(v.length).padStart(2,"0")+v;let d=digits(id);if(!d)return"";
+  let acc;if(d.length>=15)acc=f("03",d);else if(d.length===13)acc=f("02",d);else acc=f("01",("0000000000000"+("66"+d.replace(/^0/,""))).slice(-13));
+  let p=f("00","01")+f("01",amount?"12":"11")+f("29",f("00","A000000677010111")+acc)+f("58","TH")+f("53","764")+(amount?f("54",Number(amount).toFixed(2)):"")+"6304";
+  let crc=0xFFFF;for(let i=0;i<p.length;i++){crc^=p.charCodeAt(i)<<8;for(let j=0;j<8;j++)crc=(crc&0x8000)?((crc<<1)^0x1021):(crc<<1);crc&=0xFFFF}
+  return p+crc.toString(16).toUpperCase().padStart(4,"0")}
+
+/* slip QR decode (Thai bank slips carry a mini-QR with the transaction ref) */
+function tlv(s){const o={};let i=0;while(i+4<=s.length){const t=s.slice(i,i+2),l=parseInt(s.slice(i+2,i+4),10);if(!Number.isFinite(l))break;o[t]=s.slice(i+4,i+4+l);i+=4+l}return o}
+function slipRef(qr){if(!qr)return"";try{const t=tlv(qr);if(t["00"]){const inner=tlv(t["00"]);if(inner["02"])return inner["02"]}}catch(e){}return qr.slice(0,80)}
+async function decodeQR(blob){if(typeof jsQR==="undefined")return"";try{
+  const bmp=await createImageBitmap(blob);for(const maxW of [1000,1600,700]){const sc=Math.min(1,maxW/bmp.width);const w=Math.round(bmp.width*sc),h=Math.round(bmp.height*sc);
+    const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.drawImage(bmp,0,0,w,h);const img=x.getImageData(0,0,w,h);
+    const r=jsQR(img.data,w,h,{inversionAttempts:"attemptBoth"});if(r&&r.data)return r.data}}catch(e){console.warn(e)}return""}
+async function slipBlob(r){const url=r.slipUrl||(r.slipId?"/api/asset/"+r.slipId:"");if(!url)return null;
+  try{const res=await fetch(url);if(res.ok)return await res.blob()}catch(e){}
+  return await new Promise(ok=>{const im=new Image();im.onload=()=>{const c=document.createElement("canvas");c.width=im.naturalWidth;c.height=im.naturalHeight;c.getContext("2d").drawImage(im,0,0);c.toBlob(b=>ok(b),"image/jpeg",.92)};im.onerror=()=>ok(null);im.src=url})}
+
+/* ================= ledger: credits, boosts, shop ================= */
+function grantedTotal(uid){const a=S.approvals[uid];if(!a||!a.granted)return 0;return Object.values(a.granted).reduce((s,v)=>s+num(v),0)}
+function pollStatus(p,now=Date.now()){if(p.startAt&&now<p.startAt)return"up";if(p.endAt&&now>=p.endAt)return"end";return"live"}
+function inWindow(p,t){return (!p.startAt||t>=p.startAt)&&(!p.endAt||t<=p.endAt+5000)}
+function priceAt(item,t){const h=Array.isArray(item.priceHistory)&&item.priceHistory.length?item.priceHistory:[{price:item.price,from:0}];
+  let p=num(h[0].price);for(const x of h){if(num(x.from)<=t)p=num(x.price)}return p}
+function stockOf(item){return item.stock===""||item.stock==null?null:num(item.stock)}
+let _L=null;
+function ledger(){if(_L)return _L;const ev=[];
+  for(const [uid,b] of Object.entries(S.ballots))(Array.isArray(b.boosts)?b.boosts:[]).forEach(x=>ev.push({k:"b",uid,at:num(x.at),x}));
+  for(const [uid,o] of Object.entries(S.orders))for(const [oid,x] of Object.entries(o.orders||{}))ev.push({k:"o",uid,oid,at:num(x.at),x});
+  ev.sort((a,b)=>a.at-b.at);
+  const spent={},perPoll={},sold={},pu={},boosts=[],ord={},badge={};
+  for(const e of ev){const g=grantedTotal(e.uid),sp=spent[e.uid]||0;
+    if(e.k==="b"){const x=e.x,p=S.polls[x.pid],pts=Math.floor(num(x.pts));
+      if(!p||!p.allowBoost||pts<=0||!inWindow(p,e.at)||!(p.options||[]).some(o=>o.id===x.opt))continue;
+      const key=e.uid+"|"+x.pid,cap=num(p.boostCap);if(cap>0&&(perPoll[key]||0)+pts>cap)continue;
+      if(sp+pts>g)continue;spent[e.uid]=sp+pts;perPoll[key]=(perPoll[key]||0)+pts;boosts.push({uid:e.uid,pid:x.pid,opt:x.opt,pts,at:e.at});continue}
+    const x=e.x,item=S.shop[x.item],st=((S.deliveries[e.uid]||{}).s||{})[e.oid],qty=Math.max(1,Math.floor(num(x.qty,1))),key=e.uid+":"+e.oid;
+    const base={uid:e.uid,oid:e.oid,item:x.item,name:item?item.name:(x.name||"สินค้าที่ถูกลบ"),qty,at:e.at,state:st?st.state:"pending"};
+    if(st&&st.state==="refunded"){ord[key]={...base,valid:false,cost:0,reason:"คืนเพชรแล้ว"};continue}
+    if(!item){ord[key]={...base,valid:false,cost:0,reason:"สินค้าถูกลบ"};continue}
+    const cost=priceAt(item,e.at)*qty,stock=stockOf(item);
+    let reason="";
+    if(stock!=null&&(sold[x.item]||0)+qty>stock)reason="สินค้าหมดก่อน";
+    else if(num(item.perUser)>0&&(pu[e.uid+x.item]||0)+qty>num(item.perUser))reason="เกินจำนวนต่อคน";
+    else if(sp+cost>g)reason="เพชรไม่พอ";
+    if(reason){ord[key]={...base,valid:false,cost:0,reason};continue}
+    spent[e.uid]=sp+cost;sold[x.item]=(sold[x.item]||0)+qty;pu[e.uid+x.item]=(pu[e.uid+x.item]||0)+qty;
+    if(item.kind==="badge")badge[e.uid]=item.badge||item.emoji||"⭐";
+    ord[key]={...base,valid:true,cost,reason:""}}
+  _L={spent,boosts,ord,sold,badge};return _L}
+function invalidate(){_L=null;_ST=null}
+function balance(uid){return grantedTotal(uid)-(ledger().spent[uid]||0)}
+function myBoostIn(pid){return ledger().boosts.filter(x=>x.uid===S.uid&&x.pid===pid).reduce((s,x)=>s+x.pts,0)}
+function cleanChoices(p,v){const ids=new Set((p.options||[]).map(o=>o.id));let c=[...new Set((v&&Array.isArray(v.choices)?v.choices:[]).filter(x=>ids.has(x)))];
+  if(p.mode==="single")c=c.slice(0,1);else if(num(p.maxChoices)>0)c=c.slice(0,num(p.maxChoices));return c}
+function tally(p){const T={};(p.options||[]).forEach(o=>T[o.id]={votes:0,boost:0,voters:[]});let voters=0;
+  for(const [uid,b] of Object.entries(S.ballots)){const v=b.votes&&b.votes[p.id];if(!v||!inWindow(p,num(v.at)))continue;
+    const c=cleanChoices(p,v);if(!c.length)continue;voters++;c.forEach(o=>{T[o].votes++;T[o].voters.push(uid)})}
+  for(const x of ledger().boosts){if(x.pid!==p.id||!T[x.opt])continue;T[x.opt].boost+=x.pts}
+  let grand=0;for(const k in T){T[k].total=T[k].votes+T[k].boost;grand+=T[k].total}
+  const key=p.winnerBy==="votes"?"votes":"total";
+  const ranked=Object.keys(T).sort((a,b)=>T[b][key]-T[a][key]||T[b].total-T[a].total);
+  const n=Math.max(1,num(p.winners,1));let winners=[];
+  if(ranked.length&&T[ranked[0]][key]>0){const cut=T[ranked[Math.min(n,ranked.length)-1]][key];winners=ranked.filter(k=>T[k][key]>=cut&&T[k][key]>0)}
+  return {T,grand,voters,ranked,winners,key}}
+function myVote(pid){const b=S.ballots[S.uid];return b&&b.votes&&b.votes[pid]||null}
+function pkgList(){const p=Array.isArray(S.settings.packages)?S.settings.packages:[];return p.filter(x=>num(x.baht)>0&&num(x.pts)>0)}
+function ptsFor(baht){const pk=pkgList().find(x=>num(x.baht)===num(baht));if(pk)return num(pk.pts);const pr=num(S.settings.pricePerPoint,1)||1;return Math.floor(num(baht)/pr)}
+function reqStatus(uid,k){const a=S.approvals[uid]||{};if(a.granted&&a.granted[k]!=null)return["ok","อนุมัติแล้ว",num(a.granted[k])];if(a.rejected&&a.rejected[k])return["no","ไม่อนุมัติ: "+a.rejected[k],0];return["pending","รอตรวจสอบ",0]}
+
+/* ================= boot ================= */
+async function boot(){
+  const me=await claude.auth.me();
+  if(!me){S.authMode=location.hash==="#register"?"register":"login";try{S.settings={...DEFAULT_SETTINGS,...(await claude.auth.publicSettings())}}catch(e){}return renderAuth()}
+  const [db,user]=await Promise.all([claude.use("db"),claude.use("user")]);
+  S.db=db;S.user=user;S.uid=me.uid;S.isOwner=me.role==="admin";S.account={username:me.username};S.loggedIn=true;
+  subscribeAll();
+  if(S.isOwner){try{const p=await db.doc(`data/users/${S.uid}/adminpin`).get();S.adminPin=p.exists?p.data():null}catch(e){S.adminPin=null}
+    S.adminUnlocked=!S.adminPin||ssGet("vt_pin_"+S.uid)===String(S.adminPin.hash).slice(0,24)}
+  if(S.isOwner&&location.hash==="#admin")S.tab="admin";
+  render();
+  claude.use("room").then(r=>{if(!r)return;S.room=r;r.onPeers(c=>{S.peers=c.peers;renderOnline()},()=>{});setPresence()});
+  claude.use("assets").then(a=>{S.assets=a||null;if(S.tab==="topup")renderView(true)});
+  if(S.isOwner)claude.use("sample").then(s=>{S.sample=s||null});
+  window.addEventListener("hashchange",()=>{if(location.hash==="#admin"&&S.isOwner&&S.loggedIn&&S.tab!=="admin")goTab("admin")});
+  setInterval(tick,1000);
+}
+function fatal(msg){$("#app").innerHTML=`<div class="center"><div class="card" style="max-width:420px"><div style="font-size:2.4rem">🔒</div><h3>${esc(msg)}</h3></div></div>`}
+function sub(ref,key,cb){const t=setTimeout(()=>{S.stale=true;renderStale()},10000);
+  return ref.onSnapshot(s=>{if(!s.metadata.fromCache){clearTimeout(t);if(S.stale){S.stale=false;renderStale()}}S.loaded[key]=true;cb(s)},
+    e=>{clearTimeout(t);console.warn(key,e)})}
+function colMap(qs){const m={};qs.docs.forEach(d=>{if(d.exists)m[d.id]={id:d.id,...d.data()}});return m}
+function subscribeAll(){const db=S.db;
+  sub(db.doc("settings/main"),"settings",s=>{S.settings={...DEFAULT_SETTINGS,...(s.exists?s.data():{})};ensureAdminUid();dirty("all")});
+  sub(db.collection("polls"),"polls",qs=>{S.polls=colMap(qs);invalidate();dirty("view")});
+  sub(db.collection("profiles"),"profiles",qs=>{S.profiles=colMap(qs);dirty("all")});
+  sub(db.collection("ballots"),"ballots",qs=>{S.ballots=colMap(qs);invalidate();dirty("view")});
+  sub(db.collection("approvals"),"approvals",qs=>{S.approvals=colMap(qs);invalidate();dirty("view")});
+  sub(db.collection("shop"),"shop",qs=>{S.shop=colMap(qs);invalidate();dirty("view")});
+  sub(db.collection("orders"),"orders",qs=>{S.orders=colMap(qs);invalidate();dirty("view")});
+  sub(db.collection("deliveries"),"deliveries",qs=>{S.deliveries=colMap(qs);invalidate();dirty("view")});
+  scSubscribe();
+  sub(db.collection("chat"),"chat",qs=>{S.chats=colMap(qs);renderChatMsgs()});
+  if(S.isOwner){
+    sub(db.collection("topups"),"topups",qs=>{S.allTopups=colMap(qs);S.myTopups=S.allTopups[S.uid]||null;dirty("view");autoKick()});
+    sub(db.collection("orderinfo"),"orderinfo",qs=>{S.orderInfo=colMap(qs);S.myOrderInfo=S.orderInfo[S.uid]||null;dirty("view")});
+    sub(db.collection("verify"),"verify",qs=>{S.verify=colMap(qs);dirty("view")});
+    sub(db.collection("adminlog"),"adminlog",qs=>{S.adminlog=colMap(qs);dirty("view")});
+  }else{
+    sub(db.doc("topups/"+S.uid),"topups",s=>{S.myTopups=s.exists?s.data():null;dirty("view")});
+    sub(db.doc("orderinfo/"+S.uid),"orderinfo",s=>{S.myOrderInfo=s.exists?s.data():null;dirty("view")});
+  }}
+let adminUidWriting=false;
+async function ensureAdminUid(){if(!S.isOwner||adminUidWriting||S.settings.adminUid===S.uid||!S.loaded.settings)return;adminUidWriting=true;
+  await enqueue("settings/main",()=>safeSet("settings/main",{...clone(S.settings),adminUid:S.uid}));adminUidWriting=false}
+
+let dirtyFlag=null;
+function dirty(what){if(!S.loggedIn){if(what==="all"&&!$("#authForm"))render();return}
+  if(dirtyFlag)return;dirtyFlag=requestAnimationFrame(()=>{dirtyFlag=null;renderHeader();renderView();renderOnline();renderChatMsgs();renderBig()})}
+function renderStale(){const el=$("#stale");if(el)el.classList.toggle("hide",!S.stale)}
+function tick(){if(!S.loggedIn)return;const now=Date.now();cdUpdate(now);
+  const sig=Object.values(S.polls).map(p=>p.id+pollStatus(p,now)).join("|")+"|sc"+scStatus(now);
+  if(sig!==S.lastStatus){S.lastStatus=sig;invalidate();if(S.tab==="polls"||S.tab==="school")renderView()}}
+function cdUpdate(now=Date.now()){$$("[data-cd]").forEach(el=>{const s=num(el.dataset.s),e=num(el.dataset.e);
+  if(s&&now<s)el.textContent="เริ่มใน "+dur(s-now);else if(e&&now<e)el.textContent="เหลือเวลา "+dur(e-now);else if(e)el.textContent="ปิดโหวตแล้ว";else el.textContent="ไม่จำกัดเวลา"})}
+
+/* admin log */
+function logAdmin(type,text,extra){if(!S.isOwner)return;const d=new Date(),k=d.getFullYear()+"-"+pad(d.getMonth()+1),path="adminlog/"+k;
+  return enqueue(path,async()=>{const cur=clone(S.adminlog[k]||{e:[]});delete cur.id;cur.e=(cur.e||[]).concat({at:Date.now(),type,text,...(extra||{})}).slice(-1500);
+    S.adminlog[k]={id:k,...cur};await safeSet(path,cur)})}
+
+/* ================= top-level render ================= */
+function goTab(t){closeModal();S.tab=t;if(t==="admin"){if(location.hash!=="#admin")history.replaceState(null,"","#admin")}else if(location.hash==="#admin")history.replaceState(null,"",location.pathname+location.search);
+  renderTabs();renderView(true);window.scrollTo({top:0,behavior:"smooth"})}
+function render(){if(!S.loggedIn)return renderAuth();
+  $("#app").innerHTML=`
+  <header class="top"><div class="wrap">
+    <div class="brand"><span class="dot">✓</span><span id="hName"></span></div>
+    <div class="spacer"></div>
+    <div id="hMe" class="row"></div>
+  </div>
+  <div class="wrap"><nav class="tabs" id="tabs" role="tablist"></nav></div></header>
+  <main class="wrap">
+    <div id="stale" class="notice hide" style="margin-top:1rem">ยังติดต่อฐานข้อมูลไม่ได้ ข้อมูลที่เห็นอาจไม่อัปเดต ระบบจะลองเชื่อมต่อใหม่เอง</div>
+    <div id="view"></div>
+    <section class="card" id="chat" aria-label="ไลฟ์แชท">
+      <div class="chathead"><h3>ไลฟ์แชท</h3><span class="chip live" id="onCount">ออนไลน์ 1</span><div class="spacer"></div><span class="muted small">กดข้อความเพื่อตอบกลับ</span></div>
+      <div class="online" id="online"></div>
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+      <div class="typingline" id="typing"></div>
+      <div class="composer">
+        <div class="replybar hide" id="replyBar"><span id="replyTxt"></span><button class="btn sm" id="replyX" aria-label="ยกเลิกการตอบกลับ">✕</button></div>
+        <div class="inrow">
+          <button class="ebtn" id="eBtn" aria-label="เลือกอีโมจิ">😊</button>
+          <input type="text" id="chatIn" maxlength="300" placeholder="พิมพ์ข้อความ… กด Enter เพื่อส่ง" autocomplete="off">
+          <button class="btn pri" id="sendBtn">ส่ง</button>
+        </div>
+        <div class="picker hide" id="picker"></div>
+      </div>
+    </section>
+  </main>
+  <button class="fab" id="fab" aria-label="ไปที่แชท">💬<span class="badge hide" id="fabBadge">0</span></button>`;
+  renderHeader();renderTabs();renderView(true);renderOnline();renderChatMsgs(true);wireChat();renderStale();setPresence();
+}
+function renderHeader(){const n=$("#hName");if(!n)return;n.textContent=S.settings.siteName||"โหวตกันเถอะ";document.title=S.settings.siteName||"โหวตกันเถอะ";
+  const p=prof(S.uid);
+  $("#hMe").innerHTML=`<button class="btn sm boost" data-act="tab" data-tab="topup" title="เพชรคงเหลือ">💎 <span class="bal num">${fmtN(balance(S.uid))}</span></button>
+   <span class="me"><span class="av">${esc(p.av||"🙂")}</span><span><b>${nickHTML(S.uid)}</b>${S.isOwner?' <span class="adm">แอดมิน</span>':""}</span></span>
+   ${S.isOwner?`<button class="btn sm pri" data-act="tab" data-tab="admin">หลังบ้าน</button>`:""}
+   <button class="btn sm" data-act="profile" aria-label="แก้ไขโปรไฟล์">แก้ไข</button>
+   <button class="btn sm" data-act="logout">ออกจากระบบ</button>`}
+function renderTabs(){const t=[["polls","กิจกรรมโหวต"],["school","โหวตโรงเรียน"],["topup","เติมเพชร"],["shop","ร้านค้าเพชร"],["mine","ประวัติของฉัน"]];if(S.isOwner)t.push(["admin","หลังบ้าน"]);
+  $("#tabs").innerHTML=t.map(([k,l])=>`<button role="tab" aria-selected="${S.tab===k}" data-act="tab" data-tab="${k}">${l}</button>`).join("");
+  const chat=$("#chat"),fab=$("#fab");if(chat){chat.classList.toggle("hide",S.tab==="admin");fab.classList.toggle("hide",S.tab==="admin")}}
+
+/* ================= auth ================= */
+function renderAuth(){const reg=S.authMode==="register";const st=S.settings;
+  $("#app").innerHTML=`<div class="authwrap"><div class="auth">
+   <div class="logo"><div class="dot">✓</div><h1 style="font-size:1.7rem">${esc(st.siteName)}</h1><p class="muted" style="margin:.2rem 0 0">${esc(st.tagline)}</p></div>
+   <form class="card stack" id="authForm" autocomplete="on">
+    <div class="seg2" role="tablist"><button type="button" role="tab" aria-selected="${!reg}" data-mode="login">เข้าสู่ระบบ</button><button type="button" role="tab" aria-selected="${reg}" data-mode="register">สมัครสมาชิก</button></div>
+    <label for="aUser">ชื่อผู้ใช้ (username)<input type="text" id="aUser" autocomplete="username" placeholder="เช่น somchai99" maxlength="20" required></label>
+    <label for="aPass">รหัสผ่าน<input type="password" id="aPass" autocomplete="${reg?"new-password":"current-password"}" placeholder="อย่างน้อย 6 ตัวอักษร" required></label>
+    ${reg?`<label for="aPass2">ยืนยันรหัสผ่าน<input type="password" id="aPass2" autocomplete="new-password" required></label>
+    <label for="aNick">ชื่อเล่น (แสดงในโหวตและแชท)<input type="text" id="aNick" maxlength="20" placeholder="เช่น น้องส้ม" required></label>
+    <div><div class="small muted" style="margin-bottom:.3rem">เลือกรูปประจำตัว</div><div class="avpick" id="avPick">${AVATARS.map((a,i)=>`<button type="button" aria-pressed="${i===0}" data-av="${a}">${a}</button>`).join("")}</div></div>`:""}
+    <div class="err" id="aErr"></div>
+    <button class="btn pri block" type="submit" id="aBtn">${reg?"สมัครและเข้าใช้งาน":"เข้าสู่ระบบ"}</button>
+    ${!reg?`<div class="small muted" style="text-align:center">ลืมรหัสผ่าน? แจ้งแอดมินให้ตั้งรหัสใหม่ให้</div>`:""}
+   </form>
+   <p class="muted small" style="text-align:center">ยังไม่มีบัญชี? กดแท็บ สมัครสมาชิก ด้านบน</p>
+  </div></div>`;
+  const f=$("#authForm");
+  $$("[data-mode]",f).forEach(b=>b.onclick=()=>{S.authMode=b.dataset.mode;renderAuth()});
+  $$("#avPick button").forEach(b=>b.onclick=()=>{$$("#avPick button").forEach(x=>x.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true")});
+  if($("#forgot"))$("#forgot").onclick=()=>resetPassword();
+  f.onsubmit=async e=>{e.preventDefault();const err=$("#aErr");err.textContent="";const btn=$("#aBtn");btn.disabled=true;
+    try{reg?await doRegister():await doLogin()}catch(x){console.warn(x);err.textContent="เกิดข้อผิดพลาด ลองอีกครั้ง"}btn.disabled=false};
+}
+async function doRegister(){const err=$("#aErr");
+  const u=$("#aUser").value.trim().toLowerCase(),p=$("#aPass").value,p2=$("#aPass2").value,n=$("#aNick").value.trim();
+  const av=($('#avPick [aria-pressed="true"]')||{}).dataset?.av||"🐰";
+  if(!/^[a-z0-9_.]{3,20}$/.test(u))return err.textContent="ชื่อผู้ใช้ใช้ a-z, 0-9, _ หรือ . ยาว 3-20 ตัว";
+  if(p.length<6)return err.textContent="รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร";
+  if(p!==p2)return err.textContent="รหัสผ่านทั้งสองช่องไม่ตรงกัน";
+  if(!n)return err.textContent="ใส่ชื่อเล่นด้วยนะ";
+  try{await claude.auth.register({username:u,password:p,nick:n,av});location.hash="";location.reload()}catch(e){err.textContent=e.message||"สมัครไม่สำเร็จ ลองอีกครั้ง"}}
+async function doLogin(){const err=$("#aErr");const u=$("#aUser").value.trim().toLowerCase(),p=$("#aPass").value;
+  try{await claude.auth.login(u,p);location.reload()}catch(e){err.textContent=e.message||"เข้าสู่ระบบไม่สำเร็จ"}}
+function resetPassword(){openModal(`<h3>เปลี่ยนรหัสผ่าน</h3>
+  <label for="rp0">รหัสผ่านเดิม<input type="password" id="rp0" autocomplete="current-password"></label>
+  <label for="rp1">รหัสผ่านใหม่<input type="password" id="rp1" autocomplete="new-password"></label><label for="rp2">ยืนยันรหัสผ่านใหม่<input type="password" id="rp2" autocomplete="new-password"></label><div class="err" id="rpErr"></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ยกเลิก</button><button class="btn pri" id="rpOk">บันทึก</button></div>`,
+  {onMount:b=>{$("#rpOk",b).onclick=async()=>{const o=$("#rp0").value,a=$("#rp1").value,c=$("#rp2").value;if(a.length<6)return $("#rpErr").textContent="อย่างน้อย 6 ตัวอักษร";if(a!==c)return $("#rpErr").textContent="รหัสไม่ตรงกัน";
+    try{await claude.auth.changePassword(o,a);closeModal();toast("เปลี่ยนรหัสผ่านแล้ว")}catch(e){$("#rpErr").textContent=e.message||"เปลี่ยนไม่สำเร็จ"}}}})}
+
+/* ================= views ================= */
+function renderView(force){const v=$("#view");if(!v)return;
+  if(S.tab==="polls")return viewPolls(v);
+  if(S.tab==="topup"){if(force||!$("#tpBaht"))viewTopupStatic(v);return viewTopupDyn()}
+  if(S.tab==="shop")return viewShop(v);
+  if(S.tab==="school"){if(force||!$("#scQ"))viewSchoolStatic(v);return viewSchoolDyn()}
+  if(S.tab==="mine")return viewMine(v);
+  if(S.tab==="admin"&&S.isOwner){if(!S.adminUnlocked)return force||!$("#pinIn")?viewPin(v):null;
+    if(force||!$("#admMain"))viewAdminShell(v);return viewAdminDyn(force)}
+  S.tab="polls";viewPolls(v)}
+
+/* ---- polls ---- */
+function viewPolls(v){const st=S.settings,now=Date.now();
+  const list=Object.values(S.polls).filter(p=>p.visible!==false||S.isOwner).sort((a,b)=>{const o={live:0,up:1,end:2};return o[pollStatus(a,now)]-o[pollStatus(b,now)]||num(b.createdAt)-num(a.createdAt)});
+  const live=list.filter(p=>pollStatus(p,now)==="live").length;
+  let h=`<div class="hero"><div style="flex:1;min-width:240px"><h1>${esc(st.siteName)}</h1><p class="muted" style="margin:.2rem 0 0">${esc(st.tagline)}</p></div>
+   <div class="stats"><span class="stat"><b class="num">${live}</b>กำลังเปิดโหวต</span><span class="stat"><b class="num">${Object.keys(S.profiles).length}</b>สมาชิก</span><span class="stat"><b class="num">${onlineList().length}</b>ออนไลน์</span></div></div>`;
+  if(st.announcement)h+=`<div class="announce">📣 ${esc(st.announcement)}</div>`;
+  if(!S.loaded.polls)h+=`<div class="empty"><div class="spin"></div>กำลังโหลดกิจกรรม…</div>`;
+  else if(!list.length)h+=`<div class="card empty"><div class="big">🗳️</div><h3>ยังไม่มีกิจกรรมให้โหวต</h3><p>${S.isOwner?"ไปที่หลังบ้านเพื่อสร้างกิจกรรมแรก":"รอแอดมินเปิดกิจกรรมเร็วๆ นี้"}</p>${S.isOwner?'<button class="btn pri" data-act="newpoll">สร้างกิจกรรม</button>':""}</div>`;
+  else h+=`<div class="polls">${list.map(pollCard).join("")}</div>`;
+  v.innerHTML=h;animateBars();cdUpdate()}
+function pollCard(p){const now=Date.now(),st=pollStatus(p,now),t=tally(p),mv=myVote(p.id),mine=mv?cleanChoices(p,mv):[];
+  const color=THEMES[p.theme]||THEMES.pink;
+  const hideRes=(p.showResults==="after_end"&&st!=="end")||(p.showResults==="after_vote"&&!mine.length&&st!=="end");
+  const stChip=st==="live"?'<span class="chip live">กำลังโหวต</span>':st==="up"?'<span class="chip up">เร็วๆ นี้</span>':'<span class="chip end">จบแล้ว</span>';
+  const modeChip=p.mode==="single"?'<span class="chip">เลือกได้ 1 ข้อ · 1 คน 1 ครั้ง · เปลี่ยนไม่ได้</span>':`<span class="chip">เลือกได้${num(p.maxChoices)>0?" สูงสุด "+num(p.maxChoices)+" ข้อ":"ทุกข้อ"}${p.showNames?" · แสดงชื่อผู้โหวต":""}</span>`;
+  const boostOn=p.allowBoost&&st==="live";
+  let win="";
+  if(st==="end"){win=t.winners.length?`<div class="winner"><span class="tro">🏆</span><div><div class="small muted">ผู้ชนะ${num(p.winners,1)>1?" "+num(p.winners)+" อันดับ":""}</div><b>${t.winners.map(k=>{const o=p.options.find(x=>x.id===k);return esc((o.emoji||"")+" "+o.label)}).join(" · ")}</b></div><div class="spacer"></div><span class="small num">${fmtN(t.T[t.winners[0]][t.key])} ${t.key==="votes"?"โหวต":"คะแนน"}</span></div>`:`<div class="winner"><span class="tro">🏁</span><b>ปิดโหวตแล้ว ไม่มีผู้โหวต</b></div>`}
+  const leader=t.ranked[0]&&t.T[t.ranked[0]].total>0?t.ranked[0]:null;
+  const opts=(p.options||[]).map(o=>{const r=t.T[o.id],pctN=t.grand?r.votes/t.grand*100:0,pctB=t.grand?r.boost/t.grand*100:0,pct=t.grand?Math.round(r.total/t.grand*1000)/10:0;
+    const isMine=mine.includes(o.id),isWin=st==="end"&&t.winners.includes(o.id);
+    let btn="";
+    if(st==="live"){if(p.mode==="single"){btn=mine.length?(isMine?'<button class="btn sm done" disabled>✓ โหวตแล้ว</button>':""):`<button class="btn sm pri" data-act="vote" data-pid="${p.id}" data-opt="${o.id}">โหวต</button>`}
+      else{const locked=p.allowChange===false&&isMine;btn=isMine?`<button class="btn sm done" ${locked?"disabled":`data-act="vote" data-pid="${p.id}" data-opt="${o.id}"`}>✓ โหวตแล้ว${locked?"":" (กดเพื่อยกเลิก)"}</button>`:`<button class="btn sm pri" data-act="vote" data-pid="${p.id}" data-opt="${o.id}">โหวต</button>`}
+      if(boostOn)btn+=`<button class="btn sm boost" data-act="boost" data-pid="${p.id}" data-opt="${o.id}">⚡ ใช้เพชรเพิ่มคะแนน</button>`}
+    const names=p.showNames&&!hideRes?r.voters.slice(0,10).map(u=>`<span class="vchip">${esc(prof(u).av||"")} ${nickHTML(u)}</span>`).join("")+(r.voters.length>10?`<span class="vchip">+${r.voters.length-10}</span>`:""):"";
+    const k=p.id+":"+o.id;
+    return `<div class="opt ${isMine?"mine":""} ${isWin?"win":""}">
+      <div class="l1"><span class="oe">${esc(o.emoji||"•")}</span><span class="lab">${esc(o.label)}${leader===o.id&&st!=="up"&&!hideRes?" 👑":""}${o.desc?`<small>${esc(o.desc)}</small>`:""}</span>
+        <span class="score ${hideRes?"veil":""}"><b>${pct}%</b><br><span class="small muted">${fmtN(r.total)} คะแนน</span></span></div>
+      <div class="bar ${hideRes?"veil":""}" aria-label="${esc(o.label)} ${pct}%"><div class="seg n" data-k="${k}:n" data-w="${hideRes?0:pctN.toFixed(2)}" style="width:${S.prevW[k+":n"]||0}%"></div><div class="seg b" data-k="${k}:b" data-w="${hideRes?0:pctB.toFixed(2)}" style="width:${S.prevW[k+":b"]||0}%"></div></div>
+      <div class="l3"><div class="voters">${names}${!hideRes&&r.boost?`<span class="vchip">⚡ พิเศษ ${fmtN(r.boost)}</span>`:""}</div>${btn}</div></div>`}).join("");
+  const myB=myBoostIn(p.id);
+  return `<article class="card poll" style="--t:${color}"><div class="stripe"></div><div class="in">
+    <div class="head"><div class="pe">${esc(p.emoji||"🗳️")}</div><div style="flex:1;min-width:0">
+      <div class="row" style="margin-bottom:.25rem">${stChip}${modeChip}${p.allowBoost?'<span class="chip">⚡ ใช้เพชรเพิ่มคะแนนได้</span>':""}${p.visible===false?'<span class="chip end">ซ่อนอยู่ (เห็นเฉพาะแอดมิน)</span>':""}</div>
+      <h2>${esc(p.title)}</h2>${p.desc?`<div class="desc">${esc(p.desc)}</div>`:""}
+      <div class="row small muted"><span class="cd" data-cd data-s="${num(p.startAt)}" data-e="${num(p.endAt)}"></span>${p.endAt?`<span>· ปิด ${fmtDT(p.endAt)}</span>`:""}</div></div></div>
+    ${win}
+    ${hideRes?`<div class="notice small">${p.showResults==="after_end"?"ผลโหวตจะเปิดเผยเมื่อปิดโหวต":"โหวตก่อนแล้วจะเห็นผลคะแนน"}</div>`:""}
+    <div class="opts">${opts}</div>
+    <div class="row small muted"><span class="legend"><span><i style="background:${color}"></i>โหวตปกติ</span><span><i style="background:var(--boost)"></i>คะแนนจากเพชร</span></span><div class="spacer"></div>
+      <span class="num">${fmtN(t.voters)} คนโหวต · ${fmtN(t.grand)} คะแนนรวม${myB?` · คุณใช้เพชร ${fmtN(myB)}`:""}</span></div>
+  </div></article>`}
+function animateBars(){requestAnimationFrame(()=>requestAnimationFrame(()=>{$$(".seg[data-w]").forEach(el=>{el.style.width=el.dataset.w+"%";S.prevW[el.dataset.k]=el.dataset.w})}))}
+async function doVote(pid,opt){const p=S.polls[pid];if(!p)return;if(pollStatus(p)!=="live")return toast("กิจกรรมนี้ไม่ได้เปิดโหวตอยู่");
+  const o=p.options.find(x=>x.id===opt);const mv=myVote(pid);const cur=mv?cleanChoices(p,mv):[];let next;
+  if(p.mode==="single"){if(cur.length)return toast("คุณโหวตกิจกรรมนี้ไปแล้ว เปลี่ยนไม่ได้");
+    if(!await confirmBox("ยืนยันการโหวต",`โหวตให้ <b>${esc((o.emoji||"")+" "+o.label)}</b> ใช่ไหม?<br><span class="muted small">โหวตได้ครั้งเดียว ยืนยันแล้วเปลี่ยนไม่ได้</span>`,"ยืนยันโหวต"))return;next=[opt]}
+  else{if(cur.includes(opt)){if(p.allowChange===false)return toast("กิจกรรมนี้ยกเลิกโหวตไม่ได้");next=cur.filter(x=>x!==opt)}
+    else{if(num(p.maxChoices)>0&&cur.length>=num(p.maxChoices))return toast(`เลือกได้สูงสุด ${num(p.maxChoices)} ข้อ ยกเลิกข้ออื่นก่อน`);next=[...cur,opt]}}
+  const path="ballots/"+S.uid;
+  await enqueue(path,async()=>{const b=clone(S.ballots[S.uid]||{votes:{},boosts:[]});delete b.id;b.votes=b.votes||{};b.boosts=b.boosts||[];
+    if(p.mode==="single"&&b.votes[pid]&&cleanChoices(p,b.votes[pid]).length)return;
+    if(next.length)b.votes[pid]={choices:next,at:Date.now()};else delete b.votes[pid];
+    S.ballots[S.uid]={id:S.uid,...b};invalidate();renderView();
+    if(await safeSet(path,b)&&next.includes(opt))toast("โหวตให้ "+o.label+" แล้ว 💖")})}
+function openBoost(pid,opt){const p=S.polls[pid],o=p&&p.options.find(x=>x.id===opt);if(!o)return;const bal=balance(S.uid),cap=num(p.boostCap),used=myBoostIn(pid);
+  const max=cap>0?Math.min(bal,cap-used):bal;
+  openModal(`<h3>⚡ ใช้เพชรเพิ่มคะแนน</h3><div class="opt mine" style="--t:${THEMES[p.theme]||THEMES.pink}"><div class="l1"><span class="oe">${esc(o.emoji||"•")}</span><span class="lab">${esc(o.label)}<small>${esc(p.title)}</small></span></div></div>
+   <div class="row"><span>เพชรคงเหลือ</span><div class="spacer"></div><b class="bal num">💎 ${fmtN(bal)}</b></div>
+   ${cap>0?`<div class="small muted">กิจกรรมนี้ใช้ได้สูงสุด ${fmtN(cap)} เพชรต่อคน (ใช้ไปแล้ว ${fmtN(used)})</div>`:""}
+   ${max<=0?`<div class="notice">เพชรไม่พอ เติมเพชรก่อนแล้วกลับมาเพิ่มคะแนนได้เลย</div><div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ปิด</button><button class="btn pri" data-act="tab" data-tab="topup">ไปเติมเพชร</button></div>`:
+   `<label for="bPts">ใช้กี่เพชร (1 เพชร = +1 คะแนน)<input type="number" id="bPts" min="1" max="${max}" value="${Math.min(10,max)}"></label>
+   <div class="row">${[1,5,10,50,100].filter(n=>n<=max).map(n=>`<button class="btn sm" data-q="${n}">${n}</button>`).join("")}<button class="btn sm" data-q="${max}">ทั้งหมด</button></div>
+   <div class="err" id="bErr"></div>
+   <div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ยกเลิก</button><button class="btn pri" id="bOk">ยืนยันใช้เพชร</button></div>`}`,
+  {onMount:b=>{$$("[data-q]",b).forEach(x=>x.onclick=()=>{$("#bPts").value=x.dataset.q});const ok=$("#bOk",b);if(!ok)return;
+    ok.onclick=async()=>{const pts=Math.floor(num($("#bPts").value));if(pts<1||pts>max)return $("#bErr").textContent=`ใส่ได้ 1 - ${max}`;if(pollStatus(p)!=="live")return $("#bErr").textContent="ปิดโหวตแล้ว";
+      ok.disabled=true;const path="ballots/"+S.uid;
+      await enqueue(path,async()=>{const bb=clone(S.ballots[S.uid]||{votes:{},boosts:[]});delete bb.id;bb.votes=bb.votes||{};bb.boosts=bb.boosts||[];
+        bb.boosts.push({id:rid(),pid,opt,pts,at:Date.now()});S.ballots[S.uid]={id:S.uid,...bb};invalidate();
+        if(await safeSet(path,bb)){closeModal();toast(`ใช้ ${pts} เพชรเพิ่มคะแนนให้ ${o.label} แล้ว ⚡`);dirty("view")}else ok.disabled=false})}}})}
+
+/* ---- top-up ---- */
+let tpMethod=null,tpSlip=null,tpQR="";
+function methodsOn(){const st=S.settings,m=[];if(st.payPromptpay!==false)m.push("pp");if(st.payTrue!==false)m.push("tw");return m}
+function viewTopupStatic(v){const st=S.settings,pr=num(st.pricePerPoint,1)||1,ms=methodsOn();if(!ms.includes(tpMethod))tpMethod=ms[0]||null;tpSlip=null;tpQR="";
+  v.innerHTML=`<div class="hero"><div><h1>เติมเพชร</h1><p class="muted" style="margin:.2rem 0 0">ใช้เพชรเพิ่มคะแนนโหวต และแลกของในร้านค้าเพชร</p></div></div>
+  <div class="stack" style="padding-bottom:1rem">
+   <section class="card balbig"><span class="muted">เพชรคงเหลือ</span><span class="v num" id="tpBal">0</span><span class="spacer"></span><span class="small muted" id="tpPend"></span></section>
+   ${!ms.length?`<div class="card notice">แอดมินยังไม่เปิดช่องทางชำระเงิน</div>`:`<section class="card stack">
+    <h3>1. เลือกแพ็กเกจ หรือใส่จำนวนเงินเอง</h3>
+    <div class="pkgs" id="pkgs">${pkgList().map(x=>{const base=Math.floor(num(x.baht)/pr),bonus=num(x.pts)-base;return `<button class="pkg" aria-pressed="false" data-baht="${num(x.baht)}"><b class="num">💎 ${fmtN(x.pts)}</b><span class="num">${fmtN(x.baht)} บาท</span>${bonus>0?`<div class="bonus">โบนัส +${fmtN(bonus)}</div>`:""}</button>`}).join("")}</div>
+    <div class="grid2"><label for="tpBaht">จำนวนเงิน (บาท)<input type="number" id="tpBaht" min="1" step="1" placeholder="เช่น 100"></label>
+     <div style="align-self:end;padding-bottom:.6rem">ได้รับ <b class="bal num" id="tpCalc">0</b> เพชร <span class="small muted">(${fmtN(pr)} บาท / เพชร)</span></div></div>
+    <h3>2. เลือกช่องทางและโอนเงิน</h3>
+    <div class="methods">${ms.includes("pp")?`<button class="method" data-m="pp" aria-pressed="${tpMethod==="pp"}"><span class="mi" style="background:#1a5ba8">QR</span><span><b>พร้อมเพย์ / QR ธนาคาร</b><br><span class="small muted">สแกนจ่ายได้ทุกธนาคาร</span></span></button>`:""}
+      ${ms.includes("tw")?`<button class="method" data-m="tw" aria-pressed="${tpMethod==="tw"}"><span class="mi" style="background:#f26b21">TW</span><span><b>TrueMoney Wallet</b><br><span class="small muted">โอนเข้าเบอร์ทรูมันนี่</span></span></button>`:""}</div>
+    <div id="payBox"></div>
+    <h3>3. แนบสลิปและส่งคำขอ</h3>
+    ${S.assets?`<label for="tpSlip">สลิปการโอน (รูปภาพ)<input type="file" id="tpSlip" accept="image/*"></label><div class="slipprev" id="slipPrev"></div>`:`<div class="notice small">บัญชีนี้แนบรูปไม่ได้ ใส่เวลาโอนและเลขอ้างอิงในหมายเหตุแทน</div>`}
+    <label for="tpNote">หมายเหตุ (ถ้ามี)<input type="text" id="tpNote" maxlength="120" placeholder="เช่น โอนเวลา 14:32"></label>
+    <div class="err" id="tpErr"></div>
+    <button class="btn pri block" id="tpSubmit">ส่งคำขอเติมเพชร</button>
+    <div class="small muted">ระบบตรวจสลิป (ยอดเงิน ชื่อผู้รับ เวลา และสลิปซ้ำ) แล้วเพชรจะเข้าบัญชีเมื่อผ่านการตรวจ</div>
+   </section>`}
+   <section class="card stack"><h3>ประวัติการเติม</h3><div class="hist" id="tpHist"></div></section>
+  </div>`;
+  if(!ms.length)return;
+  const inp=$("#tpBaht");let qt=null;
+  const upd=()=>{const b=num(inp.value);$("#tpCalc").textContent=fmtN(ptsFor(b));$$(".pkg").forEach(x=>x.setAttribute("aria-pressed",String(num(x.dataset.baht)===b)));clearTimeout(qt);qt=setTimeout(drawPay,250)};
+  inp.oninput=upd;$$(".pkg").forEach(x=>x.onclick=()=>{inp.value=x.dataset.baht;upd()});
+  $$(".method").forEach(x=>x.onclick=()=>{tpMethod=x.dataset.m;$$(".method").forEach(y=>y.setAttribute("aria-pressed",String(y===x)));drawPay()});
+  const first=pkgList()[1]||pkgList()[0];if(first)inp.value=first.baht;upd();
+  if($("#tpSlip"))$("#tpSlip").onchange=async e=>{const f=e.target.files[0];tpSlip=f||null;tpQR="";const pv=$("#slipPrev");pv.innerHTML="";if(!f)return;
+    const url=URL.createObjectURL(f);pv.innerHTML=`<img src="${url}" alt="ตัวอย่างสลิป"><span class="small muted" id="qrState">กำลังอ่าน QR ในสลิป…</span>`;
+    tpQR=await decodeQR(f);const s=$("#qrState");if(s)s.innerHTML=tpQR?`<span class="st-ok">พบ QR ในสลิป · เลขอ้างอิง ${esc(slipRef(tpQR).slice(0,24))}</span>`:(tpMethod==="pp"?`<span class="st-pending">ไม่พบ QR ในสลิป ตรวจว่าเป็นสลิปเต็มใบ</span>`:`<span class="muted">พร้อมส่ง</span>`)};
+  $("#tpSubmit").onclick=submitTopup}
+function drawPay(){const box=$("#payBox");if(!box)return;const st=S.settings,baht=Math.floor(num(($("#tpBaht")||{}).value));
+  if(tpMethod==="tw"){box.innerHTML=`<div class="paybox"><div class="qr" style="display:grid;place-items:center;background:#f26b21;color:#fff;font-family:var(--display);font-size:1.6rem">True<br>Money</div><div class="stack" style="gap:.35rem">
+    ${st.truePhone?`<div><span class="muted small">เบอร์ TrueMoney Wallet</span><br><b class="num" style="font-size:1.3rem">${esc(st.truePhone)}</b> <button class="btn sm" data-act="copy" data-text="${esc(digits(st.truePhone))}">คัดลอก</button></div>`:`<div class="muted">แอดมินยังไม่ได้ตั้งเบอร์ TrueMoney</div>`}
+    ${st.trueName?`<div><span class="muted small">ชื่อผู้รับ</span><br><b>${esc(st.trueName)}</b></div>`:""}
+    <div>ยอดที่ต้องโอน <b class="num">${fmtB(baht)} บาท</b></div><div class="small muted">เปิดแอป TrueMoney → โอนเงิน → ใส่เบอร์ด้านบน แล้วบันทึกสลิป</div></div></div>`;return}
+  box.innerHTML=`<div class="paybox"><div class="qr" id="qr" aria-label="PromptPay QR"></div><div class="stack" style="gap:.35rem">
+    ${st.promptpay?`<div><span class="muted small">พร้อมเพย์</span><br><b class="num" style="font-size:1.15rem">${esc(st.promptpay)}</b> <button class="btn sm" data-act="copy" data-text="${esc(digits(st.promptpay))}">คัดลอก</button></div>`:`<div class="muted">แอดมินยังไม่ได้ตั้งค่าพร้อมเพย์</div>`}
+    ${st.accountName?`<div><span class="muted small">ชื่อบัญชี</span><br><b>${esc(st.accountName)}</b></div>`:""}
+    ${st.bankName||st.bankAccount?`<div class="small">หรือโอนเข้า ${esc(st.bankName)} <b class="num">${esc(st.bankAccount)}</b></div>`:""}
+    ${st.bankInfo?`<div class="small" style="white-space:pre-wrap">${esc(st.bankInfo)}</div>`:""}
+    <div>ยอดที่ต้องโอน <b class="num">${fmtB(baht)} บาท</b></div><div class="small muted">สแกน QR แล้วยอดเงินจะขึ้นให้อัตโนมัติ</div></div></div>`;
+  const el=$("#qr"),pl=ppPayload(st.promptpay,baht>0?baht:0);
+  if(!pl||typeof QRCode==="undefined"){el.innerHTML='<div class="small" style="color:#555;display:grid;place-items:center;height:100%;text-align:center">ไม่มี QR</div>';return}
+  new QRCode(el,{text:pl,width:160,height:160,correctLevel:QRCode.CorrectLevel.M})}
+async function submitTopup(){const err=$("#tpErr");err.textContent="";const baht=Math.floor(num($("#tpBaht").value)),pts=ptsFor(baht),note=$("#tpNote").value.trim();
+  if(baht<1||pts<1)return err.textContent="ใส่จำนวนเงินที่ได้อย่างน้อย 1 เพชร";if(!tpMethod)return err.textContent="เลือกช่องทางชำระเงิน";
+  if(S.assets&&!tpSlip)return err.textContent="แนบสลิปการโอนด้วยนะ";
+  if(tpQR){const ref=slipRef(tpQR);const dup=Object.values((S.myTopups&&S.myTopups.reqs)||{}).some(r=>r.slipRef&&r.slipRef===ref);if(dup)return err.textContent="สลิปนี้เคยส่งแล้ว ใช้ซ้ำไม่ได้"}
+  const btn=$("#tpSubmit");btn.disabled=true;btn.textContent="กำลังส่ง…";let slipId="",slipUrl="";
+  try{if(tpSlip){if(tpSlip.size>8*1024*1024)throw{msg:"รูปใหญ่เกิน 8MB"};const r=await S.assets.upload(tpSlip);slipId=r.id;slipUrl=r.url}}
+  catch(e){btn.disabled=false;btn.textContent="ส่งคำขอเติมเพชร";return err.textContent=e.msg||"อัปโหลดสลิปไม่สำเร็จ ลองใหม่อีกครั้ง"}
+  const path="topups/"+S.uid,id=rid();
+  await enqueue(path,async()=>{const d=clone(S.myTopups||{reqs:{}});delete d.id;d.reqs=d.reqs||{};
+    d.reqs[id]={baht,pts,note,method:tpMethod,slipId,slipUrl,slipQR:tpQR.slice(0,300),slipRef:slipRef(tpQR),at:Date.now()};
+    if(await safeSet(path,d)){S.myTopups=d;toast("ส่งคำขอแล้ว ระบบกำลังตรวจสลิป 🙏");$("#tpNote").value="";if($("#tpSlip")){$("#tpSlip").value="";$("#slipPrev").innerHTML=""}tpSlip=null;tpQR="";viewTopupDyn()}});
+  btn.disabled=false;btn.textContent="ส่งคำขอเติมเพชร"}
+const METHOD_LABEL={pp:"พร้อมเพย์/QR",tw:"TrueMoney"};
+function viewTopupDyn(){const b=$("#tpBal");if(!b)return;b.textContent="💎 "+fmtN(balance(S.uid));
+  const reqs=Object.entries((S.myTopups&&S.myTopups.reqs)||{}).sort((a,c)=>num(c[1].at)-num(a[1].at));
+  const pend=reqs.filter(([k])=>reqStatus(S.uid,k)[0]==="pending").length;$("#tpPend").textContent=pend?`รอตรวจสอบ ${pend} รายการ`:"";
+  const rows=reqs.map(([k,r])=>{const [c,l,g]=reqStatus(S.uid,k);return `<div class="hrow"><b class="num">${fmtB(r.baht)} บาท</b><span class="num">→ 💎 ${fmtN(c==="ok"?g:r.pts)}</span><span class="tag">${METHOD_LABEL[r.method]||"โอน"}</span><span class="small muted">${fmtDT(r.at)}</span><div class="spacer"></div><span class="st-${c} small">${esc(l)}</span></div>`});
+  $("#tpHist").innerHTML=rows.join("")||'<div class="muted small">ยังไม่มีประวัติการเติม</div>'}
+
+/* ---- shop ---- */
+function itemPic(it,cls=""){const img=it.imageUrl||(it.imageId?"/api/asset/"+it.imageId:"");return img?`<img src="${esc(img)}" alt="${esc(it.name)}" class="${cls}">`:esc(it.emoji||"🎁")}
+function viewShop(v){const L=ledger(),items=Object.values(S.shop).filter(i=>i.active!==false||S.isOwner).sort((a,b)=>num(a.sort)-num(b.sort)||num(b.createdAt)-num(a.createdAt));
+  let h=`<div class="hero"><div style="flex:1;min-width:240px"><h1>ร้านค้าเพชร</h1><p class="muted" style="margin:.2rem 0 0">ใช้เพชรแลกของรางวัลและฉายาพิเศษ</p></div><div class="stats"><span class="stat"><b class="num">💎 ${fmtN(balance(S.uid))}</b>เพชรของคุณ</span></div></div>`;
+  if(!S.loaded.shop)h+=`<div class="empty"><div class="spin"></div>กำลังโหลดร้านค้า…</div>`;
+  else if(!items.length)h+=`<div class="card empty"><div class="big">🛍️</div><h3>ยังไม่มีสินค้า</h3><p>${S.isOwner?"เพิ่มสินค้าได้ที่หลังบ้าน → ร้านค้าเพชร":"รอแอดมินเพิ่มสินค้าเร็วๆ นี้"}</p></div>`;
+  else h+=`<div class="shopgrid">${items.map(it=>{const st=stockOf(it),left=st==null?null:Math.max(0,st-(L.sold[it.id]||0)),price=priceAt(it,Date.now());
+    const mine=Object.values(L.ord).filter(o=>o.uid===S.uid&&o.item===it.id&&o.valid).reduce((s,o)=>s+o.qty,0);
+    const limitHit=num(it.perUser)>0&&mine>=num(it.perUser),out=left===0;
+    return `<article class="card item ${out?"soldout":""}"><div class="pic">${itemPic(it)}</div><div class="body">
+      <div class="row">${it.kind==="badge"?'<span class="chip">ฉายาในแชท</span>':'<span class="chip">ของรางวัล</span>'}${it.active===false?'<span class="chip end">ซ่อนอยู่</span>':""}</div>
+      <h3>${esc(it.name)}</h3>${it.desc?`<div class="small muted" style="white-space:pre-wrap">${esc(it.desc)}</div>`:""}
+      <div class="row"><span class="price num">💎 ${fmtN(price)}</span><div class="spacer"></div><span class="small muted">${left==null?"ไม่จำกัด":out?"หมดแล้ว":"เหลือ "+fmtN(left)}</span></div>
+      ${num(it.perUser)>0?`<div class="small muted">จำกัด ${fmtN(it.perUser)} ชิ้นต่อคน${mine?` · คุณมี ${mine}`:""}</div>`:""}
+      <button class="btn pri block" data-act="buy" data-item="${it.id}" ${out||limitHit||it.active===false?"disabled":""}>${out?"สินค้าหมด":limitHit?"ครบจำนวนแล้ว":"แลกเลย"}</button></div></article>`}).join("")}</div>`;
+  v.innerHTML=h}
+function openBuy(itemId){const it=S.shop[itemId];if(!it)return;const price=priceAt(it,Date.now()),bal=balance(S.uid);
+  openModal(`<h3>แลกสินค้า</h3><div class="row"><div class="pe" style="font-size:2rem;width:64px;height:64px;border-radius:16px;display:grid;place-items:center;background:var(--soft);overflow:hidden">${itemPic(it)}</div><div><b>${esc(it.name)}</b><div class="price num">💎 ${fmtN(price)}</div></div></div>
+   <div class="row"><span>เพชรคงเหลือ</span><div class="spacer"></div><b class="num">💎 ${fmtN(bal)}</b></div>
+   ${it.needInfo?`<label for="buyInfo">${esc(it.infoLabel||"ข้อมูลสำหรับรับของ")}<textarea id="buyInfo" maxlength="300" placeholder="แอดมินจะเห็นข้อมูลนี้คนเดียว"></textarea></label>`:""}
+   ${bal<price?`<div class="notice">เพชรไม่พอ ขาดอีก ${fmtN(price-bal)} เพชร</div><div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ปิด</button><button class="btn pri" data-act="tab" data-tab="topup">ไปเติมเพชร</button></div>`:
+   `<div class="err" id="buyErr"></div><div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ยกเลิก</button><button class="btn pri" id="buyOk">ยืนยันแลก ${fmtN(price)} เพชร</button></div>`}`,
+  {onMount:b=>{const ok=$("#buyOk",b);if(!ok)return;ok.onclick=async()=>{const info=it.needInfo?$("#buyInfo").value.trim():"";if(it.needInfo&&!info)return $("#buyErr").textContent="กรอกข้อมูลสำหรับรับของด้วยนะ";
+    ok.disabled=true;const oid=rid(),path="orders/"+S.uid;
+    const done=await enqueue(path,async()=>{const d=clone(S.orders[S.uid]||{orders:{}});delete d.id;d.orders=d.orders||{};d.orders[oid]={item:itemId,name:it.name,qty:1,price,at:Date.now()};
+      S.orders[S.uid]={id:S.uid,...d};invalidate();return await safeSet(path,d)});
+    if(!done){ok.disabled=false;return}
+    if(info){const ip="orderinfo/"+S.uid;await enqueue(ip,async()=>{const d=clone(S.myOrderInfo||{info:{}});delete d.id;d.info=d.info||{};d.info[oid]=info;S.myOrderInfo=d;await safeSet(ip,d)})}
+    closeModal();const o=ledger().ord[S.uid+":"+oid];toast(o&&!o.valid?"แลกไม่สำเร็จ: "+o.reason:"แลกสำเร็จ 🎉 "+(it.kind==="badge"?"ฉายาใหม่ขึ้นแล้ว":"รอแอดมินจัดส่ง"));dirty("view")}}})}
+
+/* ---- my history ---- */
+function myEvents(uid){const L=ledger(),ev=[];
+  Object.entries(((uid===S.uid?S.myTopups:S.allTopups[uid])||{}).reqs||{}).forEach(([k,r])=>{const s=reqStatus(uid,k);ev.push({at:num(r.at),type:"top",title:`เติมเงิน ${fmtB(r.baht)} บาท (${METHOD_LABEL[r.method]||"โอน"})`,amt:s[0]==="ok"?"+"+fmtN(s[2]):"",st:s[1],cls:s[0]})});
+  Object.entries((S.approvals[uid]||{}).granted||{}).filter(([k])=>k.startsWith("bonus_")).forEach(([k,v])=>ev.push({at:num(k.split("_")[2])||0,type:"adm",title:"ปรับเพชรโดยแอดมิน",amt:(num(v)>0?"+":"")+fmtN(v),st:"สำเร็จ",cls:"ok"}));
+  L.boosts.filter(x=>x.uid===uid).forEach(x=>{const p=S.polls[x.pid],o=p&&p.options.find(y=>y.id===x.opt);ev.push({at:x.at,type:"boost",title:`เพิ่มคะแนน ${o?o.label:""} · ${p?p.title:""}`,amt:"-"+fmtN(x.pts),st:"สำเร็จ",cls:"ok"})});
+  Object.values(L.ord).filter(o=>o.uid===uid).forEach(o=>ev.push({at:o.at,type:"shop",title:`แลก ${o.name}`,amt:o.valid?"-"+fmtN(o.cost):"0",st:!o.valid?o.reason:o.state==="delivered"?"จัดส่งแล้ว":(S.shop[o.item]&&S.shop[o.item].kind==="badge"?"ใช้งานแล้ว":"รอจัดส่ง"),cls:!o.valid?"no":o.state==="delivered"||(S.shop[o.item]&&S.shop[o.item].kind==="badge")?"ok":"pending"}));
+  return ev.sort((a,b)=>b.at-a.at)}
+const TYPE_LABEL={top:["เติมเงิน","t-top"],boost:["ใช้เพชรโหวต","t-boost"],shop:["ร้านค้า","t-shop"],adm:["แอดมิน","t-adm"],vote:["โหวต",""]};
+function viewMine(v){const ev=myEvents(S.uid);
+  v.innerHTML=`<div class="hero"><div><h1>ประวัติของฉัน</h1><p class="muted" style="margin:.2rem 0 0">การเติมเงิน การใช้เพชร และของที่แลก</p></div><div class="spacer"></div><div class="stats"><span class="stat"><b class="num">💎 ${fmtN(balance(S.uid))}</b>คงเหลือ</span><span class="stat"><b class="num">${fmtN(grantedTotal(S.uid))}</b>ได้รับทั้งหมด</span></div></div>
+  <div class="card stack" style="margin-bottom:1rem">${ev.length?`<div class="hist">${ev.map(e=>`<div class="hrow"><span class="tag ${TYPE_LABEL[e.type][1]}">${TYPE_LABEL[e.type][0]}</span><span style="flex:1;min-width:160px">${esc(e.title)}</span><b class="num">${e.amt?"💎 "+e.amt:""}</b><span class="small muted">${fmtDT(e.at)}</span><span class="st-${e.cls} small">${esc(e.st)}</span></div>`).join("")}</div>`:'<div class="muted">ยังไม่มีประวัติ</div>'}</div>`}
+
+/* ================= admin console ================= */
+function viewPin(v){v.innerHTML=`<div class="card pinbox"><div style="font-size:2.4rem">🔐</div><h2>ใส่ PIN หลังบ้าน</h2><input type="password" id="pinIn" inputmode="numeric" maxlength="12" autocomplete="off" aria-label="PIN"><div class="err" id="pinErr"></div><button class="btn pri block" id="pinOk">เข้าสู่หลังบ้าน</button></div>`;
+  const go=async()=>{const h=await hashPw($("#pinIn").value,S.adminPin.salt);if(h!==S.adminPin.hash)return $("#pinErr").textContent="PIN ไม่ถูกต้อง";ssSet("vt_pin_"+S.uid,h.slice(0,24));S.adminUnlocked=true;renderView(true)};
+  $("#pinOk").onclick=go;$("#pinIn").onkeydown=e=>{if(e.key==="Enter")go()}}
+function pendingTopups(){const out=[];for(const [uid,d] of Object.entries(S.allTopups))for(const [k,r] of Object.entries(d.reqs||{})){const st=reqStatus(uid,k);if(st[0]==="pending")out.push({uid,k,r})}return out.sort((a,b)=>num(a.r.at)-num(b.r.at))}
+function pendingOrders(){return Object.values(ledger().ord).filter(o=>o.valid&&o.state==="pending"&&!(S.shop[o.item]&&S.shop[o.item].kind==="badge"))}
+function viewAdminShell(v){v.innerHTML=`<div class="adm-layout"><nav class="side" role="tablist" aria-label="เมนูหลังบ้าน">${ADMIN_TABS.map(([k,l])=>`<button role="tab" aria-selected="${S.adminTab===k}" data-act="atab" data-tab="${k}">${l}<span class="cnt hide" data-cnt="${k}"></span></button>`).join("")}
+  <button data-act="tab" data-tab="polls">← กลับหน้าเว็บ</button></nav><div class="adm-main" id="admMain"></div></div>`}
+function setCnt(k,n){const c=$(`[data-cnt="${k}"]`);if(c){c.textContent=n;c.classList.toggle("hide",!n)}}
+function viewAdminDyn(force){const m=$("#admMain");if(!m)return;setCnt("topups",pendingTopups().length);setCnt("orders",pendingOrders().length);
+  const t=S.adminTab;
+  if(t==="settings"){if(force||!$("#setForm"))adminSettings(m);return}
+  if(t==="history"){if(force||!$("#histList"))adminHistoryShell(m);return adminHistoryList()}
+  if(t==="schools"&&!force&&$("#scConfForm")&&document.activeElement&&$("#scConfForm").contains(document.activeElement))return;
+  ({dash:adminDash,polls:adminPolls,schools:adminSchools,topups:adminTopups,shop:adminShop,orders:adminOrders,members:adminMembers}[t]||adminDash)(m)}
+function todayStart(){const d=new Date();d.setHours(0,0,0,0);return d.getTime()}
+function topupRows(){const all=[];for(const [uid,d] of Object.entries(S.allTopups))for(const [k,r] of Object.entries(d.reqs||{}))all.push({uid,k,r,st:reqStatus(uid,k),v:((S.verify[uid]||{}).c||{})[k]});return all}
+function adminDash(m){const rows=topupRows(),t0=todayStart(),ok=rows.filter(x=>x.st[0]==="ok");
+  const bahtToday=ok.filter(x=>num(x.r.at)>=t0).reduce((s,x)=>s+num(x.r.baht),0),bahtAll=ok.reduce((s,x)=>s+num(x.r.baht),0);
+  const L=ledger(),diaSpent=Object.values(L.spent).reduce((s,v)=>s+v,0),diaOut=Object.keys(S.profiles).reduce((s,u)=>s+balance(u),0);
+  const live=Object.values(S.polls).filter(p=>pollStatus(p)==="live").length,pt=pendingTopups().length,po=pendingOrders().length;
+  const recent=allEvents().slice(0,12);
+  m.innerHTML=`<div class="row"><h2>ภาพรวม</h2><div class="spacer"></div><button class="btn pri" data-act="newpoll">+ สร้างกิจกรรม</button><button class="btn" data-act="newitem">+ เพิ่มสินค้า</button></div>
+  <div class="kpis">
+   <div class="kpi"><span>ยอดเติมวันนี้</span><b>${fmtB(bahtToday)} ฿</b></div>
+   <div class="kpi"><span>ยอดเติมทั้งหมด</span><b>${fmtB(bahtAll)} ฿</b></div>
+   <div class="kpi ${pt?"warn":""}"><span>สลิปรอตรวจ</span><b>${pt}</b></div>
+   <div class="kpi ${po?"warn":""}"><span>คำสั่งซื้อรอส่ง</span><b>${po}</b></div>
+   <div class="kpi"><span>สมาชิก</span><b>${fmtN(Object.keys(S.profiles).length)}</b></div>
+   <div class="kpi"><span>ออนไลน์ตอนนี้</span><b>${onlineList().length}</b></div>
+   <div class="kpi"><span>กิจกรรมเปิดอยู่</span><b>${live}</b></div>
+   <div class="kpi"><span>เพชรที่ใช้ไป / คงค้าง</span><b>${fmtN(diaSpent)} / ${fmtN(diaOut)}</b></div>
+  </div>
+  ${pt?`<div class="card row"><span>มีสลิปรอตรวจ ${pt} รายการ</span><div class="spacer"></div><button class="btn pri" data-act="atab" data-tab="topups">ไปตรวจสลิป</button></div>`:""}
+  <div class="card stack"><div class="row"><h3>ความเคลื่อนไหวล่าสุด</h3><div class="spacer"></div><button class="btn sm" data-act="atab" data-tab="history">ดูทั้งหมด</button></div>${evTable(recent)}</div>`}
+function adminPolls(m){const list=Object.values(S.polls).sort((a,b)=>num(b.createdAt)-num(a.createdAt));
+  m.innerHTML=`<div class="row"><h2>กิจกรรมโหวต</h2><div class="spacer"></div><button class="btn pri" data-act="newpoll">+ สร้างกิจกรรมใหม่</button></div>`+(!list.length?`<div class="card empty"><div class="big">🗳️</div><p>ยังไม่มีกิจกรรม</p></div>`:
+  `<div class="alist">${list.map(p=>{const st=pollStatus(p),t=tally(p);return `<div class="card arow" style="border-left:6px solid ${THEMES[p.theme]||THEMES.pink}">
+    <span style="font-size:1.8rem">${esc(p.emoji||"🗳️")}</span>
+    <div class="t"><b>${esc(p.title)}</b><div class="small muted">${st==="live"?"กำลังโหวต":st==="up"?"ยังไม่เริ่ม":"จบแล้ว"} · ${p.mode==="single"?"1 คน 1 ครั้ง":"เลือกหลายข้อ"} · ${fmtDT(p.startAt)} → ${fmtDT(p.endAt)}${p.visible===false?" · ซ่อนอยู่":""}</div>
+     <div class="small num">${fmtN(t.voters)} คนโหวต · ${fmtN(t.grand)} คะแนน${t.ranked[0]&&t.T[t.ranked[0]].total?` · นำ: ${esc(p.options.find(o=>o.id===t.ranked[0]).label)}`:""}</div></div>
+    <div class="row"><button class="btn sm" data-act="editpoll" data-pid="${p.id}">แก้ไข</button>
+     ${st==="live"?`<button class="btn sm" data-act="closepoll" data-pid="${p.id}">ปิดโหวตทันที</button>`:""}
+     <button class="btn sm" data-act="togglevis" data-pid="${p.id}">${p.visible===false?"แสดง":"ซ่อน"}</button>
+     <button class="btn sm" data-act="duppoll" data-pid="${p.id}">คัดลอก</button>
+     <button class="btn sm danger" data-act="delpoll" data-pid="${p.id}">ลบ</button></div></div>`}).join("")}</div>`)}
+
+/* ---- top-ups + slip verification ---- */
+function vBadge(v,uid,k){if(S.verifying[uid+":"+k])return'<span class="vbadge run">กำลังตรวจสลิป…</span>';if(!v)return'<span class="vbadge run">ยังไม่ได้ตรวจ</span>';
+  return v.pass?'<span class="vbadge pass">✓ ผ่านการตรวจ</span>':'<span class="vbadge fail">✕ ไม่ผ่าน</span>'}
+function adminTopups(m){const all=topupRows().sort((a,b)=>num(b.r.at)-num(a.r.at));const pend=all.filter(x=>x.st[0]==="pending").reverse(),done=all.filter(x=>x.st[0]!=="pending").slice(0,60);
+  const canAI=!!S.sample;
+  const row=x=>{const p=prof(x.uid),img=x.r.slipUrl||(x.r.slipId?"/api/asset/"+x.r.slipId:""),v=x.v;
+    return `<div class="card stack" style="gap:.6rem"><div class="arow">
+    ${img?`<img class="slip" src="${esc(img)}" alt="สลิปของ ${esc(p.nick)}" data-act="zoom" data-src="${esc(img)}">`:`<div class="slip" style="display:grid;place-items:center;cursor:default">🧾</div>`}
+    <div class="t"><b>${esc(p.av||"")} ${esc(p.nick)}</b> <span class="muted small">@${esc(p.username)}</span> <span class="tag">${METHOD_LABEL[x.r.method]||"โอน"}</span>
+     <div class="num"><b>${fmtB(x.r.baht)} บาท</b> → 💎 ${fmtN(ptsFor(x.r.baht))}</div><div class="small muted">ส่งเมื่อ ${fmtDT(x.r.at)}${x.r.note?" · "+esc(x.r.note):""}${x.r.slipRef?" · อ้างอิง "+esc(x.r.slipRef.slice(0,22)):""}</div></div>
+    <div class="row">${vBadge(v,x.uid,x.k)}${x.st[0]==="pending"?`
+      ${img&&canAI?`<button class="btn sm" data-act="verify" data-uid="${x.uid}" data-k="${x.k}" ${S.verifying[x.uid+":"+x.k]?"disabled":""}>${v?"ตรวจอีกครั้ง":"ตรวจสลิป"}</button>`:""}
+      <button class="btn sm pri" data-act="approve" data-uid="${x.uid}" data-k="${x.k}">อนุมัติ</button><button class="btn sm danger" data-act="reject" data-uid="${x.uid}" data-k="${x.k}">ไม่อนุมัติ</button>`:`<span class="st-${x.st[0]} small">${esc(x.st[1])}${x.st[0]==="ok"?" · 💎 "+fmtN(x.st[2]):""}</span>`}</div></div>
+    ${v?`<div class="grid2" style="align-items:start"><ul class="checks">${(v.checks||[]).map(c=>`<li class="${c.ok?"":"no"}">${esc(c.msg)}</li>`).join("")}</ul>
+      <div class="small muted">อ่านจากสลิป: ${esc(v.ai&&v.ai.bank||"-")} · ${v.ai&&v.ai.amount!=null?fmtB(v.ai.amount)+" บาท":"-"} · ผู้รับ ${esc(v.ai&&v.ai.receiver_name||"-")} ${esc(v.ai&&v.ai.receiver_account||"")} · ${esc(v.ai&&v.ai.datetime||"-")}${v.ai&&v.ai.ref?" · ref "+esc(v.ai.ref):""}<br>ตรวจเมื่อ ${fmtDT(v.at)}${v.auto?" (อัตโนมัติ)":""}</div></div>`:""}</div>`};
+  m.innerHTML=`<div class="row"><h2>เติมเงิน / ตรวจสลิป</h2><div class="spacer"></div>
+   ${canAI?`<button class="btn ${S.autoMode?"done":"pri"}" data-act="automode">${S.autoMode?"■ หยุดโหมดตรวจอัตโนมัติ":"▶ เริ่มโหมดตรวจอัตโนมัติ"}</button>`:""}</div>
+   <div class="notice small">${canAI?`ระบบตรวจสลิปอ่านยอดเงิน ชื่อ/เลขบัญชีผู้รับ วันเวลา เลขอ้างอิง และ QR ในสลิป แล้วเทียบกับคำขอและสลิปที่เคยใช้ ${S.settings.autoApprove?"<b>สลิปที่ผ่านทุกข้อจะเติมเพชรให้อัตโนมัติ</b>":"เปิด “อนุมัติอัตโนมัติ” ได้ที่หน้าตั้งค่า"} · โหมดอัตโนมัติทำงานขณะเปิดหน้านี้ไว้ ระบบนี้ไม่ได้เช็กกับธนาคารโดยตรง ควรดูยอดเข้าในแอปธนาคารประกอบ`:`ระบบอ่านสลิปด้วย AI ยังไม่เปิด (ต้องตั้งค่า ANTHROPIC_API_KEY ใน Netlify) ตอนนี้ตรวจด้วยตาแล้วกดอนุมัติได้ · ระบบยังกันสลิปซ้ำจาก QR ให้อัตโนมัติ`}</div>
+   <h3>รอตรวจ (${pend.length})</h3>${pend.map(row).join("")||'<div class="muted">ไม่มีคำขอค้าง</div>'}
+   <h3>ประวัติล่าสุด</h3>${done.map(row).join("")||'<div class="muted">ยังไม่มีประวัติ</div>'}`}
+function normName(s){return String(s||"").toLowerCase().replace(/(นางสาว|น\.ส\.|นาย|นาง|ด\.ช\.|ด\.ญ\.|mr\.?|mrs\.?|ms\.?|miss)\s*/g,"").replace(/[\s.\-_]/g,"")}
+function nameMatch(got,exp){const g=normName(got);if(!g)return false;return exp.some(e=>{const n=normName(e);if(n.length<2)return false;const k=n.slice(0,Math.min(n.length,4));return g.includes(k)||n.includes(g.slice(0,Math.min(g.length,4)))})}
+function usedRefs(exceptUid,exceptK){const set=new Map();for(const [uid,d] of Object.entries(S.verify))for(const [k,v] of Object.entries(d.c||{})){if(uid===exceptUid&&k===exceptK)continue;
+    const st=reqStatus(uid,k)[0];if(st==="no")continue;[v.qrRef,v.ai&&v.ai.ref].forEach(r=>{if(r&&String(r).length>=6)set.set(String(r).replace(/\s/g,""),uid+":"+k)})}
+  for(const [uid,d] of Object.entries(S.allTopups))for(const [k,r] of Object.entries(d.reqs||{})){if(uid===exceptUid&&k===exceptK)continue;if(reqStatus(uid,k)[0]==="no")continue;if(r.slipRef&&r.slipRef.length>=6)set.set(r.slipRef,uid+":"+k)}
+  return set}
+async function verifyReq(uid,k,auto=false){const key=uid+":"+k;if(S.verifying[key])return;const r=((S.allTopups[uid]||{}).reqs||{})[k];if(!r||!S.sample)return;
+  S.verifying[key]=true;dirty("view");const st=S.settings;
+  try{const blob=await slipBlob(r);if(!blob)throw{code:"noimg"};
+    const qr=await decodeQR(blob),qrRef=slipRef(qr);
+    const expNames=[st.accountName,st.trueName,...String(st.matchNames||"").split(",")].map(s=>s.trim()).filter(Boolean);
+    const expAcc=[st.promptpay,st.bankAccount,st.truePhone].map(digits).filter(d=>d.length>=4);
+    const prompt=`You are checking a Thai money-transfer slip image (bank app or TrueMoney Wallet). Read it carefully and report ONLY what is printed.
+Customer claims: method=${r.method==="tw"?"TrueMoney Wallet":"PromptPay / bank transfer"}, amount=${r.baht} THB, submitted at ${new Date(r.at).toISOString()}.
+Reply with only JSON: {"is_slip":boolean,"bank":string,"amount":number|null,"datetime":"ISO 8601 with +07:00 (convert Buddhist year 25xx to Gregorian) or null","receiver_name":string,"receiver_account":string,"sender_name":string,"ref":string,"looks_edited":boolean,"notes":string}
+receiver_account: account/phone/PromptPay as printed (keep x masks). ref: transaction reference number. looks_edited: true if fonts/alignment look tampered or it's a screenshot of something that isn't a completed transfer. notes: short Thai note.`;
+    const ai=await S.sample.json(prompt,{images:[blob],modelTier:"default"});
+    const checks=[],add=(ok,msg)=>checks.push({ok:!!ok,msg});
+    add(ai&&ai.is_slip,ai&&ai.is_slip?"เป็นสลิปการโอนเงิน":"ภาพนี้ไม่ใช่สลิปโอนเงินที่สำเร็จ");
+    const amt=num(ai&&ai.amount,NaN);add(Number.isFinite(amt)&&amt+0.001>=num(r.baht),Number.isFinite(amt)?`ยอดในสลิป ${fmtB(amt)} บาท ${amt+0.001>=num(r.baht)?"ครบตามคำขอ":"น้อยกว่าคำขอ "+fmtB(r.baht)+" บาท"}`:"อ่านยอดเงินไม่ได้");
+    const accD=digits(ai&&ai.receiver_account),accOk=accD.length>=3&&expAcc.some(e=>e.endsWith(accD.slice(-3))||e.endsWith(accD.slice(-4)));
+    const nmOk=nameMatch(ai&&ai.receiver_name,expNames);
+    add(nmOk||accOk,nmOk||accOk?`ผู้รับตรงกับบัญชีแอดมิน (${nmOk?"ชื่อ":"เลขบัญชี"})`:`ผู้รับไม่ตรง: ${(ai&&ai.receiver_name)||"-"} ${(ai&&ai.receiver_account)||""}${!expNames.length&&!expAcc.length?" (ยังไม่ได้ตั้งชื่อ/เลขบัญชีในหน้าตั้งค่า)":""}`);
+    const t=Date.parse(ai&&ai.datetime||""),maxAge=num(st.slipMaxAgeH,24)*3600e3;
+    add(Number.isFinite(t)&&t<=num(r.at)+15*60e3&&num(r.at)-t<=maxAge,Number.isFinite(t)?`เวลาในสลิป ${fmtDT(t)} ${t>num(r.at)+15*60e3?"อยู่หลังเวลาที่ส่งคำขอ":num(r.at)-t>maxAge?"เก่าเกิน "+num(st.slipMaxAgeH,24)+" ชม.":"อยู่ในช่วงที่กำหนด"}`:"อ่านวันเวลาในสลิปไม่ได้");
+    const used=usedRefs(uid,k),refs=[qrRef,ai&&ai.ref].filter(x=>x&&String(x).length>=6).map(x=>String(x).replace(/\s/g,""));const dupBy=refs.map(x=>used.get(x)).find(Boolean);
+    add(!dupBy,dupBy?`สลิปซ้ำกับคำขอของ ${prof(dupBy.split(":")[0]).nick}`:refs.length?"เลขอ้างอิงไม่ซ้ำกับสลิปที่เคยใช้":"ไม่พบเลขอ้างอิง ตรวจซ้ำไม่ได้");
+    if(!refs.length)checks[checks.length-1].ok=r.method==="tw";
+    if(r.method!=="tw")add(!!qr,qr?"พบ QR ยืนยันรายการในสลิป":"ไม่พบ QR ยืนยันรายการ (สลิปธนาคารจริงมักมี QR)");
+    add(!(ai&&ai.looks_edited),ai&&ai.looks_edited?"สลิปดูเหมือนถูกแก้ไข":"ไม่พบร่องรอยการแก้ไข");
+    const pass=checks.every(c=>c.ok);
+    const rec={at:Date.now(),auto,pass,checks,qrRef:qr?qrRef:"",ai:{bank:String(ai&&ai.bank||"").slice(0,40),amount:Number.isFinite(amt)?amt:null,datetime:String(ai&&ai.datetime||"").slice(0,40),receiver_name:String(ai&&ai.receiver_name||"").slice(0,60),receiver_account:String(ai&&ai.receiver_account||"").slice(0,40),ref:String(ai&&ai.ref||"").slice(0,60),notes:String(ai&&ai.notes||"").slice(0,160)}};
+    const path="verify/"+uid;
+    await enqueue(path,async()=>{const d=clone(S.verify[uid]||{c:{}});delete d.id;d.c=d.c||{};d.c[k]=rec;S.verify[uid]={id:uid,...d};await safeSet(path,d)});
+    logAdmin("verify",`ตรวจสลิป ${prof(uid).nick} ${fmtB(r.baht)} บาท: ${pass?"ผ่าน":"ไม่ผ่าน"}`,{uid,k});
+    if(pass&&st.autoApprove&&reqStatus(uid,k)[0]==="pending")await approveReq(uid,k,ptsFor(r.baht),null,true);
+    else if(!auto)toast(pass?"สลิปผ่านการตรวจ กดอนุมัติได้เลย":"สลิปไม่ผ่านการตรวจ ดูรายละเอียดด้านล่าง");
+  }catch(e){console.warn(e);const c=e&&e.code;
+    if(c==="rate_limited"){S.autoMode=false;toast("ใช้งานตรวจสลิปถี่เกินไป หยุดโหมดอัตโนมัติชั่วคราว")}
+    else if(c==="not_granted"||c==="sampling_disabled"||c==="images_unavailable"){S.sample=null;S.autoMode=false;toast("ไม่ได้รับอนุญาตให้ใช้ระบบตรวจสลิป")}
+    else if(c==="noimg")toast("เปิดรูปสลิปไม่ได้");else toast("ตรวจสลิปไม่สำเร็จ ลองอีกครั้ง")}
+  finally{delete S.verifying[key];dirty("view")}}
+let autoBusy=false;
+async function autoKick(){if(!S.autoMode||autoBusy||!S.sample)return;autoBusy=true;
+  try{while(S.autoMode){const next=pendingTopups().find(x=>!((S.verify[x.uid]||{}).c||{})[x.k]&&(x.r.slipUrl||x.r.slipId));if(!next)break;await verifyReq(next.uid,next.k,true)}}
+  finally{autoBusy=false}}
+async function approveReq(uid,k,pts,reason,auto=false){const path="approvals/"+uid;const r=((S.allTopups[uid]||{}).reqs||{})[k];
+  await enqueue(path,async()=>{const a=clone(S.approvals[uid]||{});delete a.id;a.granted=a.granted||{};a.rejected=a.rejected||{};
+    if(reason!=null){a.rejected[k]=reason;delete a.granted[k]}else{a.granted[k]=pts;delete a.rejected[k]}
+    if(await safeSet(path,a)){S.approvals[uid]={id:uid,...a};invalidate();
+      const who=prof(uid).nick;
+      if(k.startsWith("bonus_"))logAdmin("bonus",`ปรับเพชร ${who} ${pts>0?"+":""}${fmtN(pts)}`,{uid});
+      else logAdmin(reason!=null?"reject":"approve",`${reason!=null?"ไม่อนุมัติ":"อนุมัติ"}${auto?"อัตโนมัติ":""} ${who} ${r?fmtB(r.baht)+" บาท":""}${reason!=null?" ("+reason+")":" +"+fmtN(pts)+" เพชร"}`,{uid,k});
+      toast(reason!=null?"ไม่อนุมัติแล้ว":(auto?"เติมเพชรอัตโนมัติ: ":"")+"+"+fmtN(pts)+" เพชรให้ "+who);dirty("view")}})}
+
+/* ---- shop admin ---- */
+function adminShop(m){const L=ledger(),items=Object.values(S.shop).sort((a,b)=>num(a.sort)-num(b.sort)||num(b.createdAt)-num(a.createdAt));
+  m.innerHTML=`<div class="row"><h2>ร้านค้าเพชร</h2><div class="spacer"></div><button class="btn pri" data-act="newitem">+ เพิ่มสินค้า</button></div>`+(!items.length?`<div class="card empty"><div class="big">🛍️</div><p>ยังไม่มีสินค้า</p></div>`:
+  `<div class="alist">${items.map(it=>{const st=stockOf(it),sold=L.sold[it.id]||0;return `<div class="card arow"><div class="slip" style="display:grid;place-items:center;font-size:2rem;overflow:hidden;cursor:default">${itemPic(it,"slip")}</div>
+   <div class="t"><b>${esc(it.name)}</b> <span class="tag">${it.kind==="badge"?"ฉายา "+esc(it.badge||""):"ของรางวัล"}</span>${it.active===false?' <span class="tag">ซ่อน</span>':""}
+    <div class="small num">💎 ${fmtN(priceAt(it,Date.now()))} · ขายแล้ว ${fmtN(sold)}${st!=null?" / สต็อก "+fmtN(st)+" (เหลือ "+fmtN(Math.max(0,st-sold))+")":" · ไม่จำกัดสต็อก"}${num(it.perUser)>0?" · จำกัด "+it.perUser+"/คน":""}</div></div>
+   <div class="row"><button class="btn sm" data-act="edititem" data-id="${it.id}">แก้ไข</button><button class="btn sm" data-act="toggleitem" data-id="${it.id}">${it.active===false?"แสดง":"ซ่อน"}</button><button class="btn sm danger" data-act="delitem" data-id="${it.id}">ลบ</button></div></div>`}).join("")}</div>`)}
+function openItemEditor(id){const src=id?clone(S.shop[id]):null;
+  const it=src||{name:"",emoji:"🎁",desc:"",price:100,stock:"",perUser:0,kind:"reward",badge:"",needInfo:false,infoLabel:"",active:true,sort:0};
+  let upImg={id:it.imageId||"",url:it.imageUrl||""};
+  openModal(`<h3>${id?"แก้ไขสินค้า":"เพิ่มสินค้า"}</h3>
+   <div class="grid2" style="grid-template-columns:90px 1fr"><label for="iEmoji">ไอคอน<input type="text" id="iEmoji" maxlength="4" value="${esc(it.emoji)}" style="text-align:center;font-size:1.4rem"></label><label for="iName">ชื่อสินค้า<input type="text" id="iName" maxlength="60" value="${esc(it.name)}" placeholder="เช่น บัตรเติมเกม 100 บาท"></label></div>
+   <label for="iDesc">รายละเอียด<textarea id="iDesc" maxlength="300">${esc(it.desc)}</textarea></label>
+   ${S.assets?`<label for="iImg">รูปสินค้า (ถ้ามี)<input type="file" id="iImg" accept="image/*"></label><div class="slipprev" id="iPrev">${upImg.url||upImg.id?`<img src="${esc(upImg.url||"/api/asset/"+upImg.id)}" alt=""><button type="button" class="btn sm" id="iImgX">เอารูปออก</button>`:""}</div>`:""}
+   <div class="grid2"><label for="iPrice">ราคา (เพชร)<input type="number" id="iPrice" min="0" value="${num(priceAt(it,Date.now()),100)}"></label><label for="iStock">สต็อก (เว้นว่าง = ไม่จำกัด)<input type="number" id="iStock" min="0" value="${esc(it.stock)}"></label></div>
+   <div class="grid2"><label for="iPer">จำกัดต่อคน (0 = ไม่จำกัด)<input type="number" id="iPer" min="0" value="${num(it.perUser)}"></label><label for="iSort">ลำดับการแสดง<input type="number" id="iSort" value="${num(it.sort)}"></label></div>
+   <label for="iKind">ประเภท<select id="iKind"><option value="reward" ${it.kind!=="badge"?"selected":""}>ของรางวัล (แอดมินจัดส่ง)</option><option value="badge" ${it.kind==="badge"?"selected":""}>ฉายา/อีโมจิหลังชื่อ (ใช้ได้ทันที)</option></select></label>
+   <label for="iBadge" id="iBadgeL">อีโมจิฉายาที่แสดงหลังชื่อ<input type="text" id="iBadge" maxlength="6" value="${esc(it.badge)}" placeholder="เช่น 👑"></label>
+   <label class="check"><input type="checkbox" id="iNeed" ${it.needInfo?"checked":""}> ให้ผู้ซื้อกรอกข้อมูลรับของ</label>
+   <label for="iInfoL" id="iInfoLL">หัวข้อที่ให้กรอก<input type="text" id="iInfoL" maxlength="60" value="${esc(it.infoLabel)}" placeholder="เช่น UID เกม / ที่อยู่จัดส่ง / เบอร์โทร"></label>
+   <label class="check"><input type="checkbox" id="iAct" ${it.active!==false?"checked":""}> แสดงสินค้านี้ในร้าน</label>
+   <div class="err" id="iErr"></div>
+   <div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ยกเลิก</button><button class="btn pri" id="iSave">บันทึกสินค้า</button></div>`,
+  {wide:true,onMount:b=>{const sync=()=>{$("#iBadgeL").classList.toggle("hide",$("#iKind").value!=="badge");$("#iInfoLL").classList.toggle("hide",!$("#iNeed").checked)};$("#iKind").onchange=sync;$("#iNeed").onchange=sync;sync();
+    const bindX=()=>{const x=$("#iImgX");if(x)x.onclick=()=>{upImg={id:"",url:""};$("#iPrev").innerHTML=""}};bindX();
+    if($("#iImg"))$("#iImg").onchange=async e=>{const f=e.target.files[0];if(!f)return;$("#iPrev").innerHTML='<span class="small muted">กำลังอัปโหลด…</span>';
+      try{const r=await S.assets.upload(f);upImg={id:r.id,url:r.url};$("#iPrev").innerHTML=`<img src="${esc(r.url)}" alt=""><button type="button" class="btn sm" id="iImgX">เอารูปออก</button>`;bindX()}catch(x){$("#iPrev").innerHTML='<span class="err">อัปโหลดรูปไม่สำเร็จ</span>'}};
+    $("#iSave").onclick=async()=>{const name=$("#iName").value.trim();if(!name)return $("#iErr").textContent="ใส่ชื่อสินค้า";const price=Math.max(0,Math.floor(num($("#iPrice").value)));
+      const nid=id||rid(),now=Date.now();let hist=src&&Array.isArray(src.priceHistory)&&src.priceHistory.length?src.priceHistory.slice():[{price:src?num(src.price):price,from:0}];
+      if(num(hist[hist.length-1].price)!==price)hist.push({price,from:now});
+      const sv=$("#iStock").value.trim();
+      const d={name,emoji:$("#iEmoji").value.trim()||"🎁",desc:$("#iDesc").value.trim(),price,priceHistory:hist.slice(-30),stock:sv===""?"":Math.max(0,Math.floor(num(sv))),perUser:Math.max(0,Math.floor(num($("#iPer").value))),
+        sort:num($("#iSort").value),kind:$("#iKind").value,badge:$("#iBadge").value.trim(),needInfo:$("#iNeed").checked,infoLabel:$("#iInfoL").value.trim(),active:$("#iAct").checked,imageId:upImg.id,imageUrl:upImg.url,createdAt:src?num(src.createdAt,now):now};
+      $("#iSave").disabled=true;
+      await enqueue("shop/"+nid,async()=>{if(await safeSet("shop/"+nid,d)){logAdmin("shop",`${id?"แก้ไข":"เพิ่ม"}สินค้า ${name} (💎 ${fmtN(price)})`);closeModal();toast("บันทึกสินค้าแล้ว")}else $("#iSave").disabled=false})}}})}
+function adminOrders(m){const L=ledger(),list=Object.values(L.ord).sort((a,b)=>b.at-a.at);
+  const info=(o)=>(((S.orderInfo[o.uid]||{}).info)||{})[o.oid]||"";
+  const row=o=>{const p=prof(o.uid),it=S.shop[o.item],isBadge=it&&it.kind==="badge";return `<tr><td class="small">${fmtDT(o.at)}</td><td>${esc(p.av||"")} <b>${esc(p.nick)}</b><br><span class="muted small">@${esc(p.username)}</span></td><td>${esc(o.name)}</td><td class="num">${o.valid?"💎 "+fmtN(o.cost):"-"}</td>
+    <td class="small" style="max-width:220px;white-space:pre-wrap">${esc(info(o))||'<span class="muted">-</span>'}</td>
+    <td>${!o.valid?`<span class="st-no small">${esc(o.reason)}</span>`:isBadge?'<span class="st-ok small">ใช้งานแล้ว</span>':o.state==="delivered"?'<span class="st-ok small">จัดส่งแล้ว</span>':'<span class="st-pending small">รอจัดส่ง</span>'}</td>
+    <td><div class="row">${o.valid&&!isBadge&&o.state!=="delivered"?`<button class="btn sm pri" data-act="deliver" data-uid="${o.uid}" data-oid="${o.oid}">จัดส่งแล้ว</button>`:""}${o.valid?`<button class="btn sm danger" data-act="refund" data-uid="${o.uid}" data-oid="${o.oid}">คืนเพชร</button>`:""}</div></td></tr>`};
+  m.innerHTML=`<h2>คำสั่งซื้อ</h2><div class="card tblwrap"><table class="tbl"><thead><tr><th>เวลา</th><th>ผู้ซื้อ</th><th>สินค้า</th><th class="num">ราคา</th><th>ข้อมูลรับของ</th><th>สถานะ</th><th></th></tr></thead><tbody>${list.map(row).join("")||'<tr><td colspan="7" class="muted">ยังไม่มีคำสั่งซื้อ</td></tr>'}</tbody></table></div>`}
+async function setDelivery(uid,oid,state){const path="deliveries/"+uid;
+  await enqueue(path,async()=>{const d=clone(S.deliveries[uid]||{s:{}});delete d.id;d.s=d.s||{};d.s[oid]={state,at:Date.now()};
+    if(await safeSet(path,d)){S.deliveries[uid]={id:uid,...d};invalidate();const o=((S.orders[uid]||{}).orders||{})[oid];logAdmin(state==="refunded"?"refund":"deliver",`${state==="refunded"?"คืนเพชร":"จัดส่ง"} ${o?o.name:""} ให้ ${prof(uid).nick}`,{uid,oid});toast(state==="refunded"?"คืนเพชรแล้ว":"บันทึกว่าจัดส่งแล้ว");dirty("view")}})}
+function adminMembers(m){const list=Object.values(S.profiles).sort((a,b)=>num(b.joinedAt)-num(a.joinedAt));
+  m.innerHTML=`<h2>สมาชิก</h2><div class="card tblwrap"><table class="tbl"><thead><tr><th>สมาชิก</th><th>สมัครเมื่อ</th><th class="num">โหวต</th><th class="num">เพชรที่ได้รับ</th><th class="num">ใช้ไป</th><th class="num">คงเหลือ</th><th></th></tr></thead><tbody>
+  ${list.map(p=>{const b=S.ballots[p.id];const nv=b&&b.votes?Object.keys(b.votes).length:0;return `<tr><td>${esc(p.av||"")} <b>${nickHTML(p.id)}</b> <span class="muted small">@${esc(p.username)}</span>${isAdminUid(p.id)?' <span class="adm">แอดมิน</span>':""}</td><td class="small">${fmtDT(p.joinedAt)}</td><td class="num">${nv}</td><td class="num">${fmtN(grantedTotal(p.id))}</td><td class="num">${fmtN(ledger().spent[p.id]||0)}</td><td class="num"><b>${fmtN(balance(p.id))}</b></td><td><div class="row"><button class="btn sm" data-act="bonus" data-uid="${p.id}">ปรับเพชร</button><button class="btn sm" data-act="userhist" data-uid="${p.id}">ประวัติ</button><button class="btn sm" data-act="resetpw" data-uid="${p.id}">ตั้งรหัสใหม่</button></div></td></tr>`}).join("")||'<tr><td colspan="7" class="muted">ยังไม่มีสมาชิก</td></tr>'}
+  </tbody></table></div>`}
+
+/* ---- full audit history ---- */
+function allEvents(){const ev=[],L=ledger();
+  for(const x of topupRows()){const p=prof(x.uid);ev.push({at:num(x.r.at),type:"top",uid:x.uid,title:`ส่งสลิป ${fmtB(x.r.baht)} บาท (${METHOD_LABEL[x.r.method]||"โอน"})${x.v?" · ตรวจ: "+(x.v.pass?"ผ่าน":"ไม่ผ่าน"):""}`,amt:x.st[0]==="ok"?"+"+fmtN(x.st[2]):"",st:x.st[1],cls:x.st[0],baht:num(x.r.baht)})}
+  for(const x of L.boosts){const p=S.polls[x.pid],o=p&&p.options.find(y=>y.id===x.opt);ev.push({at:x.at,type:"boost",uid:x.uid,title:`ใช้เพชรเพิ่มคะแนน ${o?o.label:""} · ${p?p.title:""}`,amt:"-"+fmtN(x.pts),st:"สำเร็จ",cls:"ok"})}
+  for(const o of Object.values(L.ord))ev.push({at:o.at,type:"shop",uid:o.uid,title:`แลก ${o.name}`,amt:o.valid?"-"+fmtN(o.cost):"0",st:o.valid?(o.state==="delivered"?"จัดส่งแล้ว":"สำเร็จ"):o.reason,cls:o.valid?"ok":"no"});
+  for(const d of Object.values(S.adminlog))for(const e of d.e||[])ev.push({at:num(e.at),type:"adm",uid:e.uid||S.uid,title:e.text,amt:"",st:"",cls:"ok",adm:true});
+  return ev.sort((a,b)=>b.at-a.at)}
+function evTable(ev){if(!ev.length)return'<div class="muted">ยังไม่มีรายการ</div>';
+  return `<div class="tblwrap"><table class="tbl"><thead><tr><th>เวลา</th><th>ประเภท</th><th>ผู้ใช้</th><th>รายละเอียด</th><th class="num">เพชร</th><th>สถานะ</th></tr></thead><tbody>${ev.map(e=>{const p=prof(e.uid);return `<tr><td class="small num">${fmtDT(e.at)}</td><td><span class="tag ${TYPE_LABEL[e.type][1]}">${TYPE_LABEL[e.type][0]}</span></td><td class="small">${e.adm?"แอดมิน":esc(p.nick)+' <span class="muted">@'+esc(p.username)+"</span>"}</td><td>${esc(e.title)}</td><td class="num">${esc(e.amt)}</td><td class="small st-${e.cls}">${esc(e.st)}</td></tr>`}).join("")}</tbody></table></div>`}
+function adminHistoryShell(m){m.innerHTML=`<h2>ประวัติทั้งหมด</h2><div class="card filters"><label for="hType">ประเภท<select id="hType"><option value="all">ทั้งหมด</option><option value="top">เติมเงิน</option><option value="boost">ใช้เพชรโหวต</option><option value="shop">ร้านค้า</option><option value="adm">การกระทำของแอดมิน</option></select></label>
+  <label for="hQ" style="flex:1">ค้นหาชื่อ / username / รายละเอียด<input type="text" id="hQ" placeholder="พิมพ์เพื่อค้นหา"></label><button class="btn" data-act="copycsv">คัดลอกเป็น CSV</button></div>
+  <div class="card" id="histList"></div>`;
+  $("#hType").value=S.histFilter.type;$("#hQ").value=S.histFilter.q;
+  $("#hType").onchange=e=>{S.histFilter.type=e.target.value;adminHistoryList()};$("#hQ").oninput=e=>{S.histFilter.q=e.target.value;adminHistoryList()}}
+function filteredEvents(){const {type,q}=S.histFilter,qq=q.trim().toLowerCase();return allEvents().filter(e=>(type==="all"||e.type===type)&&(!qq||(e.title+" "+prof(e.uid).nick+" "+prof(e.uid).username).toLowerCase().includes(qq)))}
+function adminHistoryList(){const el=$("#histList");if(!el)return;const ev=filteredEvents();el.innerHTML=`<div class="small muted" style="margin-bottom:.5rem">${fmtN(ev.length)} รายการ${ev.length>300?" (แสดง 300 รายการล่าสุด)":""}</div>`+evTable(ev.slice(0,300))}
+function csvOf(ev){const q=s=>'"'+String(s??"").replace(/"/g,'""')+'"';return ["เวลา,ประเภท,ชื่อ,username,รายละเอียด,เพชร,สถานะ"].concat(ev.map(e=>[new Date(e.at).toLocaleString("th-TH"),TYPE_LABEL[e.type][0],e.adm?"แอดมิน":prof(e.uid).nick,e.adm?"":prof(e.uid).username,e.title,e.amt,e.st].map(q).join(","))).join("\n")}
+
+/* ---- settings ---- */
+function adminSettings(m){const st=S.settings;
+  m.innerHTML=`<h2>ตั้งค่า</h2><form class="stack" id="setForm">
+   <div class="card stack"><h3>เว็บไซต์</h3>
+    <div class="grid2"><label for="sName">ชื่อเว็บ<input type="text" id="sName" maxlength="40" value="${esc(st.siteName)}"></label><label for="sTag">คำโปรย<input type="text" id="sTag" maxlength="80" value="${esc(st.tagline)}"></label></div>
+    <label for="sAnn">ประกาศบนหน้าแรก (เว้นว่างเพื่อซ่อน)<input type="text" id="sAnn" maxlength="200" value="${esc(st.announcement)}"></label>
+    <label class="check"><input type="checkbox" id="sChat" ${st.chatEnabled!==false?"checked":""}> เปิดไลฟ์แชท</label></div>
+   <div class="card stack"><h3>ช่องทางชำระเงิน</h3>
+    <label class="check"><input type="checkbox" id="sPayPP" ${st.payPromptpay!==false?"checked":""}> พร้อมเพย์ / QR ธนาคาร</label>
+    <div class="grid2"><label for="sPP">เบอร์พร้อมเพย์ / เลขบัตรประชาชน<input type="text" id="sPP" value="${esc(st.promptpay)}" placeholder="08xxxxxxxx"></label><label for="sAcc">ชื่อบัญชี (ตามที่ขึ้นในสลิป)<input type="text" id="sAcc" value="${esc(st.accountName)}" placeholder="เช่น นาย สมชาย ใจดี"></label></div>
+    <div class="grid2"><label for="sBankN">ธนาคาร (ถ้ารับโอนเข้าบัญชีด้วย)<input type="text" id="sBankN" value="${esc(st.bankName)}" placeholder="เช่น กสิกรไทย"></label><label for="sBankA">เลขบัญชี<input type="text" id="sBankA" value="${esc(st.bankAccount)}"></label></div>
+    <label for="sBank">ข้อความเพิ่มเติมหน้าชำระเงิน<textarea id="sBank">${esc(st.bankInfo)}</textarea></label>
+    <label class="check"><input type="checkbox" id="sPayTW" ${st.payTrue!==false?"checked":""}> TrueMoney Wallet</label>
+    <div class="grid2"><label for="sTWP">เบอร์ TrueMoney<input type="text" id="sTWP" value="${esc(st.truePhone)}" placeholder="08xxxxxxxx"></label><label for="sTWN">ชื่อบัญชี TrueMoney<input type="text" id="sTWN" value="${esc(st.trueName)}"></label></div></div>
+   <div class="card stack"><h3>ระบบตรวจสลิป</h3>
+    <label for="sMatch">ชื่อผู้รับอื่นๆ ที่ยอมรับ (คั่นด้วย ,)<input type="text" id="sMatch" value="${esc(st.matchNames)}" placeholder="เช่น SOMCHAI J, ร้านครัวบ้านสวน"></label>
+    <div class="grid2"><label for="sAge">สลิปต้องไม่เก่ากว่า (ชั่วโมง)<input type="number" id="sAge" min="1" value="${num(st.slipMaxAgeH,24)}"></label>
+     <label class="check" style="align-self:end"><input type="checkbox" id="sAuto" ${st.autoApprove?"checked":""}> อนุมัติอัตโนมัติเมื่อสลิปผ่านทุกข้อ</label></div>
+    <div class="small muted">ระบบตรวจ: เป็นสลิปจริงไหม, ยอดเงินครบ, ผู้รับตรงกับชื่อ/เลขบัญชีด้านบน, เวลาโอนอยู่ในช่วง, เลขอ้างอิง/QR ไม่ซ้ำ, ไม่มีร่องรอยแก้ไข</div></div>
+   <div class="card stack"><h3>ราคาเพชร</h3>
+    <div class="grid2"><label for="sPrice">ราคา (บาท ต่อ 1 เพชร) เมื่อใส่จำนวนเงินเอง<input type="number" id="sPrice" min="0.01" step="0.01" value="${num(st.pricePerPoint,1)}"></label>
+    <label for="sPkg">แพ็กเกจ (บรรทัดละ 1 แพ็ก: บาท=เพชร)<textarea id="sPkg">${esc(pkgList().map(x=>x.baht+"="+x.pts).join("\n"))}</textarea></label></div></div>
+   <div class="err" id="sErr"></div><div class="row" style="justify-content:flex-end"><button class="btn pri" type="submit">บันทึกการตั้งค่า</button></div></form>
+   <div class="card stack"><h3>ความปลอดภัยหลังบ้าน</h3><div class="row"><span>${S.adminPin?"ตั้ง PIN แล้ว":"ยังไม่ได้ตั้ง PIN"}</span><div class="spacer"></div><button class="btn" data-act="setpin">${S.adminPin?"เปลี่ยน PIN":"ตั้ง PIN"}</button>${S.adminPin?'<button class="btn danger" data-act="delpin">ลบ PIN</button>':""}</div>
+    <div class="small muted">ลิงก์ตรงเข้าหลังบ้าน: เพิ่ม #admin ท้ายลิงก์เว็บ</div></div>
+   <div class="card stack"><h3>แชท</h3><div class="row"><button class="btn danger" data-act="clearchat">ล้างข้อความแชททั้งหมด</button><span class="small muted">ลบทีละข้อความได้จากปุ่มลบในห้องแชท</span></div></div>`;
+  $("#setForm").onsubmit=async e=>{e.preventDefault();const pk=$("#sPkg").value.split(/\n+/).map(l=>l.split("=").map(s=>num(s.trim()))).filter(a=>a[0]>0&&a[1]>0).map(a=>({baht:a[0],pts:Math.floor(a[1])}));
+    const d={...clone(S.settings),siteName:$("#sName").value.trim()||"โหวตกันเถอะ",tagline:$("#sTag").value.trim(),announcement:$("#sAnn").value.trim(),chatEnabled:$("#sChat").checked,
+      payPromptpay:$("#sPayPP").checked,promptpay:$("#sPP").value.trim(),accountName:$("#sAcc").value.trim(),bankName:$("#sBankN").value.trim(),bankAccount:$("#sBankA").value.trim(),bankInfo:$("#sBank").value.trim(),
+      payTrue:$("#sPayTW").checked,truePhone:$("#sTWP").value.trim(),trueName:$("#sTWN").value.trim(),
+      matchNames:$("#sMatch").value.trim(),slipMaxAgeH:Math.max(1,num($("#sAge").value,24)),autoApprove:$("#sAuto").checked,
+      pricePerPoint:num($("#sPrice").value,1)||1,packages:pk,adminUid:S.uid};
+    await enqueue("settings/main",async()=>{if(await safeSet("settings/main",d)){S.settings={...DEFAULT_SETTINGS,...d};logAdmin("settings","แก้ไขการตั้งค่าเว็บ");toast("บันทึกการตั้งค่าแล้ว");renderHeader()}})}}
+function openSetPin(){openModal(`<h3>ตั้ง PIN หลังบ้าน</h3><p class="small muted" style="margin:0">ต้องใส่ PIN ทุกครั้งที่เปิดหลังบ้านในแท็บใหม่</p><label for="pn1">PIN ใหม่ (4-12 หลัก)<input type="password" id="pn1" inputmode="numeric" maxlength="12"></label><label for="pn2">ยืนยัน PIN<input type="password" id="pn2" inputmode="numeric" maxlength="12"></label><div class="err" id="pnErr"></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ยกเลิก</button><button class="btn pri" id="pnOk">บันทึก PIN</button></div>`,
+  {onMount:b=>{$("#pnOk",b).onclick=async()=>{const a=$("#pn1").value,c=$("#pn2").value;if(!/^\d{4,12}$/.test(a))return $("#pnErr").textContent="ใช้ตัวเลข 4-12 หลัก";if(a!==c)return $("#pnErr").textContent="PIN ไม่ตรงกัน";
+    const salt=rid()+rid(),hash=await hashPw(a,salt),d={salt,hash,at:Date.now()};if(await safeSet(`data/users/${S.uid}/adminpin`,d)){S.adminPin=d;ssSet("vt_pin_"+S.uid,hash.slice(0,24));logAdmin("settings","ตั้ง PIN หลังบ้าน");closeModal();toast("ตั้ง PIN แล้ว");viewAdminDyn(true)}}}})}
+
+/* ---- poll editor (unchanged features) ---- */
+function openPollEditor(pid,dup){const src=pid?clone(S.polls[pid]):null;const now=Date.now();
+  const p=src||{title:"",desc:"",emoji:"🏆",theme:"pink",mode:"single",maxChoices:0,allowChange:true,showNames:true,showResults:"always",startAt:now,endAt:now+3*86400000,winners:1,winnerBy:"total",allowBoost:true,boostCap:0,visible:true,
+    options:[{id:rid(),label:"",emoji:"🌸",desc:""},{id:rid(),label:"",emoji:"⭐",desc:""}]};
+  if(dup){p.title=p.title+" (สำเนา)";p.startAt=now;p.endAt=now+3*86400000;p.options=p.options.map(o=>({...o,id:rid()}))}
+  const optRow=o=>`<div class="optrow" data-oid="${esc(o.id)}"><input type="text" class="oe" maxlength="4" value="${esc(o.emoji||"")}" aria-label="อีโมจิ" style="text-align:center;font-size:1.2rem"><input type="text" class="ol" maxlength="60" value="${esc(o.label)}" placeholder="ชื่อตัวเลือก" aria-label="ชื่อตัวเลือก"><input type="text" class="od" maxlength="80" value="${esc(o.desc||"")}" placeholder="คำอธิบายสั้น (ถ้ามี)" aria-label="คำอธิบาย"><button type="button" class="btn sm danger" data-rm aria-label="ลบตัวเลือก">✕</button></div>`;
+  openModal(`<h3>${pid&&!dup?"แก้ไขกิจกรรม":"สร้างกิจกรรมโหวต"}</h3>
+   <div class="grid2" style="grid-template-columns:90px 1fr"><label for="pEmoji">ไอคอน<input type="text" id="pEmoji" maxlength="4" value="${esc(p.emoji)}" style="text-align:center;font-size:1.4rem"></label><label for="pTitle">ชื่อกิจกรรม<input type="text" id="pTitle" maxlength="80" value="${esc(p.title)}" placeholder="เช่น ประกวดดาวเดือน 2026"></label></div>
+   <label for="pDesc">รายละเอียด<textarea id="pDesc" maxlength="400">${esc(p.desc)}</textarea></label>
+   <div><div class="small muted" style="margin-bottom:.3rem">สีธีม</div><div class="themes" id="pTheme">${Object.entries(THEMES).map(([k,c])=>`<button type="button" aria-pressed="${p.theme===k}" data-th="${k}" style="background:${c}" aria-label="${k}"></button>`).join("")}</div></div>
+   <h4>ตัวเลือก</h4><div class="stack" id="pOpts" style="gap:.5rem">${p.options.map(optRow).join("")}</div>
+   <button type="button" class="btn sm" id="pAdd" style="justify-self:start">+ เพิ่มตัวเลือก</button>
+   <h4>รูปแบบการโหวต</h4>
+   <label for="pMode">เงื่อนไข<select id="pMode"><option value="single" ${p.mode==="single"?"selected":""}>โหวตได้ข้อเดียว · 1 คน 1 ครั้ง · เปลี่ยนไม่ได้</option><option value="multi" ${p.mode==="multi"?"selected":""}>โหวตได้หลายข้อ / ทุกข้อ</option></select></label>
+   <div class="grid2" id="multiOpts"><label for="pMax">เลือกได้สูงสุดกี่ข้อ (0 = ทุกข้อ)<input type="number" id="pMax" min="0" value="${num(p.maxChoices)}"></label>
+    <label class="check" style="align-self:end"><input type="checkbox" id="pChange" ${p.allowChange!==false?"checked":""}> ยกเลิก/เปลี่ยนโหวตได้</label></div>
+   <label class="check"><input type="checkbox" id="pNames" ${p.showNames?"checked":""}> แสดงชื่อผู้โหวตใต้แต่ละตัวเลือก</label>
+   <label for="pRes">การแสดงผลคะแนน<select id="pRes"><option value="always" ${p.showResults==="always"?"selected":""}>แสดงตลอด (เรียลไทม์)</option><option value="after_vote" ${p.showResults==="after_vote"?"selected":""}>แสดงหลังผู้ใช้โหวตแล้ว</option><option value="after_end" ${p.showResults==="after_end"?"selected":""}>ปิดผลไว้จนจบกิจกรรม</option></select></label>
+   <h4>ระยะเวลา</h4>
+   <div class="grid2"><label for="pStart">เริ่มโหวต<input type="datetime-local" id="pStart" value="${toLocalInput(p.startAt)}"></label><label for="pEnd">ปิดโหวต<input type="datetime-local" id="pEnd" value="${toLocalInput(p.endAt)}"></label></div>
+   <h4>การหาผู้ชนะ</h4>
+   <div class="grid2"><label for="pWin">จำนวนผู้ชนะ<input type="number" id="pWin" min="1" value="${num(p.winners,1)}"></label>
+    <label for="pWinBy">ตัดสินจาก<select id="pWinBy"><option value="total" ${p.winnerBy!=="votes"?"selected":""}>คะแนนรวม (โหวต + เพชร)</option><option value="votes" ${p.winnerBy==="votes"?"selected":""}>จำนวนโหวตปกติเท่านั้น</option></select></label></div>
+   <h4>เพชร</h4>
+   <div class="grid2"><label class="check"><input type="checkbox" id="pBoost" ${p.allowBoost?"checked":""}> ให้ใช้เพชรเพิ่มคะแนนได้</label>
+    <label for="pCap">จำกัดเพชรต่อคน (0 = ไม่จำกัด)<input type="number" id="pCap" min="0" value="${num(p.boostCap)}"></label></div>
+   <label class="check"><input type="checkbox" id="pVis" ${p.visible!==false?"checked":""}> แสดงกิจกรรมนี้ให้สมาชิกเห็น</label>
+   <div class="err" id="pErr"></div>
+   <div class="row" style="justify-content:flex-end;position:sticky;bottom:-1.2rem;background:var(--surface);padding:.6rem 0"><button class="btn" onclick="closeModal()">ยกเลิก</button><button class="btn pri" id="pSave">บันทึกกิจกรรม</button></div>`,
+  {wide:true,onMount:b=>{
+    const syncMode=()=>$("#multiOpts").classList.toggle("hide",$("#pMode").value!=="multi");$("#pMode").onchange=syncMode;syncMode();
+    $$("#pTheme button").forEach(x=>x.onclick=()=>{$$("#pTheme button").forEach(y=>y.setAttribute("aria-pressed","false"));x.setAttribute("aria-pressed","true")});
+    const opts=$("#pOpts");opts.onclick=e=>{const r=e.target.closest("[data-rm]");if(r){if($$(".optrow",opts).length<=2)return toast("ต้องมีอย่างน้อย 2 ตัวเลือก");r.closest(".optrow").remove()}};
+    $("#pAdd").onclick=()=>{opts.insertAdjacentHTML("beforeend",optRow({id:rid(),label:"",emoji:"✨",desc:""}));$(".optrow:last-child .ol",opts).focus()};
+    $("#pSave").onclick=async()=>{const err=$("#pErr");err.textContent="";
+      const options=$$(".optrow",opts).map(r=>({id:r.dataset.oid,emoji:$(".oe",r).value.trim(),label:$(".ol",r).value.trim(),desc:$(".od",r).value.trim()})).filter(o=>o.label);
+      const title=$("#pTitle").value.trim(),sA=$("#pStart").value?new Date($("#pStart").value).getTime():0,eA=$("#pEnd").value?new Date($("#pEnd").value).getTime():0;
+      if(!title)return err.textContent="ใส่ชื่อกิจกรรม";if(eA&&eA<=Date.now()&&!(pid&&!dup&&src&&src.endAt===eA))return err.textContent="เวลาปิดโหวตผ่านไปแล้ว ("+fmtDT(eA)+") ตรวจเดือน/ปีอีกครั้ง";if(options.length<2)return err.textContent="ต้องมีตัวเลือกที่มีชื่ออย่างน้อย 2 ข้อ";if(sA&&eA&&eA<=sA)return err.textContent="เวลาปิดต้องหลังเวลาเริ่ม";
+      const id=pid&&!dup?pid:rid();
+      const d={title,desc:$("#pDesc").value.trim(),emoji:$("#pEmoji").value.trim()||"🗳️",theme:($('#pTheme [aria-pressed="true"]')||{dataset:{th:"pink"}}).dataset.th,
+        mode:$("#pMode").value,maxChoices:Math.max(0,Math.floor(num($("#pMax").value))),allowChange:$("#pChange").checked,showNames:$("#pNames").checked,showResults:$("#pRes").value,
+        startAt:sA,endAt:eA,winners:Math.max(1,Math.floor(num($("#pWin").value,1))),winnerBy:$("#pWinBy").value,allowBoost:$("#pBoost").checked,boostCap:Math.max(0,Math.floor(num($("#pCap").value))),
+        visible:$("#pVis").checked,options,createdAt:src&&!dup?num(src.createdAt,Date.now()):Date.now()};
+      $("#pSave").disabled=true;
+      await enqueue("polls/"+id,async()=>{if(await safeSet("polls/"+id,d)){logAdmin("poll",`${pid&&!dup?"แก้ไข":"สร้าง"}กิจกรรม ${title}`);closeModal();toast("บันทึกกิจกรรมแล้ว");if(S.tab!=="admin"){S.adminTab="polls";goTab("admin")}}else $("#pSave").disabled=false})}}})}
+async function pollPatch(pid,patch,msg){const p=S.polls[pid];if(!p)return;const d={...clone(p),...patch};delete d.id;
+  await enqueue("polls/"+pid,async()=>{if(await safeSet("polls/"+pid,d)){logAdmin("poll",`${msg}: ${p.title}`);if(msg)toast(msg)}})}
+
+/* ================= chat ================= */
+function allMsgs(){const out=[];for(const [uid,d] of Object.entries(S.chats))(Array.isArray(d.msgs)?d.msgs:[]).forEach(m=>{if(m&&m.text)out.push({...m,uid})});
+  out.sort((a,b)=>num(a.t)-num(b.t));return out.slice(-150)}
+const EMOJI_ONLY=/^(?:\p{Extended_Pictographic}|\p{Emoji_Component}|‍|️|\s)+$/u;
+function renderChatMsgs(first){const box=$("#msgs");if(!box)return;const msgs=allMsgs();
+  const near=box.scrollHeight-box.scrollTop-box.clientHeight<80;
+  if(S.settings.chatEnabled===false&&!S.isOwner){box.innerHTML='<div class="sysline">แอดมินปิดแชทชั่วคราว</div>';return}
+  box.innerHTML=msgs.length?msgs.map(m=>{const p=prof(m.uid),me=m.uid===S.uid,big=EMOJI_ONLY.test(m.text)&&/\p{Extended_Pictographic}/u.test(m.text)&&[...m.text.replace(/\s/g,"")].length<=8;
+    return `<div class="msg ${me?"me":""}" data-mid="${esc(m.id)}" data-muid="${esc(m.uid)}"><span class="av">${esc(p.av||"🙂")}</span><div class="bub" data-act="reply" data-mid="${esc(m.id)}" data-muid="${esc(m.uid)}">
+      <div class="meta"><b>${nickHTML(m.uid)}</b>${isAdminUid(m.uid)?'<span class="adm">แอดมิน</span>':""}<time>${fmtClock(num(m.t))}</time></div>
+      ${m.re?`<div class="quote">↪ ${esc(prof(m.re.uid).nick)}: ${esc(String(m.re.text).slice(0,60))}</div>`:""}
+      <div class="txt ${big?"big":""}">${esc(m.text)}</div></div>
+      <div class="acts"><button data-act="reply" data-mid="${esc(m.id)}" data-muid="${esc(m.uid)}">ตอบ</button>${me||S.isOwner?`<button data-act="delmsg" data-mid="${esc(m.id)}" data-muid="${esc(m.uid)}">ลบ</button>`:""}</div></div>`}).join(""):'<div class="sysline">ยังไม่มีข้อความ ทักทายกันหน่อย 👋</div>';
+  if(first||near||S.chatFirst)box.scrollTop=box.scrollHeight;
+  const last=msgs.length?num(msgs[msgs.length-1].t):0;
+  if(!S.chatFirst&&last>S.chatSeen&&!S.chatVisible){const n=msgs.filter(m=>num(m.t)>S.chatSeen&&m.uid!==S.uid).length;if(n){S.unread+=n;updFab()}}
+  if(S.chatVisible){S.unread=0;updFab()}
+  if(S.loaded.chat)S.chatFirst=false;S.chatSeen=Math.max(S.chatSeen,last)}
+function updFab(){const b=$("#fabBadge");if(!b)return;b.textContent=S.unread>99?"99+":S.unread;b.classList.toggle("hide",!S.unread)}
+function onlineList(){const m=new Map();for(const p of S.peers){if(p.kind!=="viewer")continue;const uid=p.by||(p.presence&&p.presence.uid)||p.peer;
+    const prev=m.get(uid);m.set(uid,{uid,me:p.isMe||(prev&&prev.me),typing:!!(p.presence&&p.presence.typing&&Date.now()-num(p.presence.typingAt)<6000)||(prev&&prev.typing),pres:p.presence||{}})}
+  if(S.uid&&!m.has(S.uid))m.set(S.uid,{uid:S.uid,me:true,typing:false,pres:{}});
+  return [...m.values()].sort((a,b)=>(b.me-a.me))}
+function renderOnline(){const el=$("#online");if(!el)return;const list=onlineList();
+  $("#onCount").textContent="ออนไลน์ "+list.length+" คน";
+  el.innerHTML=(S.room?"":'<span class="small muted">กำลังเชื่อมต่อห้องแชท…</span>')+list.map(o=>{const p=S.profiles[o.uid]||{nick:o.pres.nick||"ผู้เยี่ยมชม",av:o.pres.av||"🙂"};
+    return `<span class="on ${o.typing?"typing":""}"><span class="av">${esc(p.av||"🙂")}</span>${S.profiles[o.uid]?nickHTML(o.uid):esc(p.nick)}${o.me?' <span class="muted">(คุณ)</span>':""}</span>`}).join("");
+  const typers=list.filter(o=>o.typing&&!o.me).map(o=>prof(o.uid).nick);
+  const tl=$("#typing");if(tl)tl.textContent=typers.length?typers.slice(0,3).join(", ")+" กำลังพิมพ์…":""}
+function setPresence(){if(!S.room||!S.loggedIn)return;const p=prof(S.uid);S.room.presence({uid:S.uid,nick:String(p.nick||"").slice(0,20),av:p.av||"🙂",typing:false}).catch(()=>{})}
+function wireChat(){const inp=$("#chatIn"),pk=$("#picker");
+  let tab=Object.keys(EMOJI_SETS)[0];
+  const drawPicker=()=>{pk.innerHTML=`<div class="ptabs">${[...Object.keys(EMOJI_SETS),"สติกเกอร์"].map(k=>`<button type="button" aria-selected="${k===tab}" data-pt="${k}">${k}</button>`).join("")}</div>
+     <div class="eg ${tab==="สติกเกอร์"?"stk":""}">${(tab==="สติกเกอร์"?STICKERS:EMOJI_SETS[tab]).map(e=>`<button type="button" data-em="${e}" aria-label="${e}">${e}</button>`).join("")}</div>`};
+  drawPicker();
+  $("#eBtn").onclick=e=>{e.stopPropagation();pk.classList.toggle("hide")};
+  pk.onclick=e=>{e.stopPropagation();const t=e.target.closest("[data-pt]");if(t){tab=t.dataset.pt;drawPicker();return}
+    const em=e.target.closest("[data-em]");if(!em)return;
+    if(tab==="สติกเกอร์"){sendMsg(em.dataset.em);pk.classList.add("hide");return}
+    const s=inp.selectionStart??inp.value.length,en=inp.selectionEnd??s;inp.value=inp.value.slice(0,s)+em.dataset.em+inp.value.slice(en);inp.focus();const c=s+em.dataset.em.length;inp.setSelectionRange(c,c)};
+  document.addEventListener("click",e=>{if(!pk.contains(e.target)&&e.target!==$("#eBtn"))pk.classList.add("hide")});
+  inp.onkeydown=e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();sendMsg(inp.value)}};
+  let typing=false;
+  inp.oninput=()=>{if(!S.room)return;if(!typing&&inp.value){typing=true;S.room.presence({typing:true,typingAt:Date.now()}).catch(()=>{})}
+    clearTimeout(S.typingTimer);S.typingTimer=setTimeout(()=>{typing=false;S.room.presence({typing:false}).catch(()=>{})},2500)};
+  $("#sendBtn").onclick=()=>sendMsg(inp.value);
+  $("#replyX").onclick=()=>setReply(null);
+  $("#fab").onclick=()=>{$("#chat").scrollIntoView({behavior:"smooth",block:"end"});setTimeout(()=>inp.focus({preventScroll:true}),400)};
+  if("IntersectionObserver" in window){new IntersectionObserver(es=>{S.chatVisible=es[0].isIntersecting;if(S.chatVisible){S.unread=0;updFab()}},{threshold:.2}).observe($("#chat"))}}
+function setReply(m){S.replyTo=m;const bar=$("#replyBar");if(!bar)return;bar.classList.toggle("hide",!m);if(m){$("#replyTxt").textContent="ตอบกลับ "+prof(m.uid).nick+": "+m.text;$("#chatIn").focus()}}
+let lastSend=0;
+async function sendMsg(text){text=String(text||"").trim();if(!text)return;if(S.settings.chatEnabled===false&&!S.isOwner)return toast("แชทถูกปิดชั่วคราว");
+  if(Date.now()-lastSend<800)return toast("พิมพ์ช้าลงนิดนึงนะ");lastSend=Date.now();
+  const m={id:rid(),t:Date.now(),text:text.slice(0,300)};if(S.replyTo)m.re={uid:S.replyTo.uid,id:S.replyTo.id,text:String(S.replyTo.text).slice(0,80)};
+  const inp=$("#chatIn");inp.value="";setReply(null);if(S.room)S.room.presence({typing:false}).catch(()=>{});
+  const path="chat/"+S.uid;
+  await enqueue(path,async()=>{const d=clone(S.chats[S.uid]||{msgs:[]});delete d.id;d.msgs=(d.msgs||[]).concat(m).slice(-40);
+    S.chats[S.uid]={id:S.uid,...d};renderChatMsgs(true);if(!await safeSet(path,d)){inp.value=text}})}
+async function delMsg(uid,id){if(!(uid===S.uid||S.isOwner))return;if(!await confirmBox("ลบข้อความ","ลบข้อความนี้ใช่ไหม?","ลบ",true))return;const path="chat/"+uid;
+  await enqueue(path,async()=>{const d=clone(S.chats[uid]||{msgs:[]});delete d.id;d.msgs=(d.msgs||[]).filter(x=>x.id!==id);S.chats[uid]={id:uid,...d};renderChatMsgs();await safeSet(path,d)})}
+
+/* ================= profile ================= */
+function openProfile(){const p=prof(S.uid);
+  openModal(`<h3>แก้ไขโปรไฟล์</h3><label for="eNick">ชื่อเล่น<input type="text" id="eNick" maxlength="20" value="${esc(p.nick)}"></label>
+  <div><div class="small muted" style="margin-bottom:.3rem">รูปประจำตัว</div><div class="avpick" id="eAv">${AVATARS.map(a=>`<button type="button" aria-pressed="${a===p.av}" data-av="${a}">${a}</button>`).join("")}</div></div>
+  <div class="row"><span class="small muted">ชื่อผู้ใช้ @${esc(p.username)}</span><div class="spacer"></div><button type="button" class="btn sm" id="ePw">เปลี่ยนรหัสผ่าน</button></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ยกเลิก</button><button class="btn pri" id="eOk">บันทึก</button></div>`,
+  {onMount:b=>{$$("#eAv button",b).forEach(x=>x.onclick=()=>{$$("#eAv button",b).forEach(y=>y.setAttribute("aria-pressed","false"));x.setAttribute("aria-pressed","true")});
+   $("#ePw",b).onclick=()=>resetPassword();
+   $("#eOk",b).onclick=async()=>{const n=$("#eNick").value.trim();if(!n)return;const av=($('#eAv [aria-pressed="true"]')||{dataset:{av:p.av}}).dataset.av;
+     const d={...clone(S.profiles[S.uid]||{}),nick:n,av};delete d.id;
+     await enqueue("profiles/"+S.uid,async()=>{if(await safeSet("profiles/"+S.uid,d)){S.profiles[S.uid]={id:S.uid,...d};closeModal();renderHeader();setPresence();toast("บันทึกโปรไฟล์แล้ว")}})}}})}
+
+/* ================= event delegation ================= */
+document.addEventListener("click",async e=>{const el=e.target.closest("[data-act]");if(!el)return;const a=el.dataset.act,d=el.dataset;
+  switch(a){
+   case"tab":goTab(d.tab);break;
+   case"atab":S.adminTab=d.tab;$$(".side button[data-tab]").forEach(b=>b.getAttribute("data-act")==="atab"&&b.setAttribute("aria-selected",String(b.dataset.tab===d.tab)));viewAdminDyn(true);window.scrollTo({top:0});break;
+   case"vote":doVote(d.pid,d.opt);break;
+   case"boost":openBoost(d.pid,d.opt);break;
+   case"buy":openBuy(d.item);break;
+   case"scvote":scVote(d.id);break;
+   case"scunvote":scUnvote();break;
+   case"scd":S.scDistrict=d.d;$$("#scD .dchip").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.d===d.d)));$("#scList").scrollTop=0;scListRender();break;
+   case"bigscreen":openBig();break;
+   case"closebig":closeBig();break;
+   case"scadd":openSchoolEditor(null);break;
+   case"scedit":openSchoolEditor(d.id);break;
+   case"scimport":openSchoolImport();break;
+   case"scseed":seedSchools(false);break;
+   case"scdel":{const sc=S.scList.find(x=>x.id===d.id);if(await confirmBox("ลบโรงเรียน",`ลบ <b>${esc(sc.n)}</b>? เสียงโหวตของโรงเรียนนี้จะไม่นับ`,"ลบ",true))saveSchools(S.scList.filter(x=>x.id!==d.id),"ลบโรงเรียน "+sc.n);break}
+   case"screset":if(await confirmBox("ล้างผลโหวตโรงเรียน","เริ่มนับคะแนนใหม่ทั้งหมด ทุกคนโหวตใหม่ได้อีกครั้ง?","ล้างผลโหวต",true)){const dd={...clone(S.scConf),resetAt:Date.now()};await enqueue("schoolvote/config",async()=>{if(await safeSet("schoolvote/config",dd)){S.scConf=dd;_ST=null;logAdmin("school","ล้างผลโหวตโรงเรียน");toast("ล้างผลแล้ว");dirty("view")}})}break;
+   case"copy":copyText(d.text);break;
+   case"logout":ssSet("vt_pin_"+S.uid,null);claude.auth.logout();location.hash="";location.reload();break;
+   case"profile":openProfile();break;
+   case"newpoll":openPollEditor(null);break;
+   case"editpoll":openPollEditor(d.pid);break;
+   case"duppoll":openPollEditor(d.pid,true);break;
+   case"closepoll":if(await confirmBox("ปิดโหวตทันที","ปิดโหวตกิจกรรมนี้ตอนนี้เลย และประกาศผู้ชนะ?","ปิดโหวต"))pollPatch(d.pid,{endAt:Date.now()},"ปิดโหวตแล้ว");break;
+   case"togglevis":{const p=S.polls[d.pid];pollPatch(d.pid,{visible:p.visible===false},p.visible===false?"แสดงกิจกรรมแล้ว":"ซ่อนกิจกรรมแล้ว");break}
+   case"delpoll":{const t=S.polls[d.pid].title;if(await confirmBox("ลบกิจกรรม",`ลบ <b>${esc(t)}</b> ถาวร? ผลโหวตจะหายไปด้วย`,"ลบ",true)){try{await S.db.doc("polls/"+d.pid).delete();logAdmin("poll","ลบกิจกรรม "+t);toast("ลบแล้ว")}catch(x){writeErr(x)}}break}
+   case"newitem":openItemEditor(null);break;
+   case"edititem":openItemEditor(d.id);break;
+   case"toggleitem":{const it=clone(S.shop[d.id]);delete it.id;it.active=it.active===false;await enqueue("shop/"+d.id,async()=>{if(await safeSet("shop/"+d.id,it))logAdmin("shop",`${it.active?"แสดง":"ซ่อน"}สินค้า ${it.name}`)});break}
+   case"delitem":{const it=S.shop[d.id];if(await confirmBox("ลบสินค้า",`ลบ <b>${esc(it.name)}</b>? คำสั่งซื้อที่ยังไม่จัดส่งจะคืนเพชรให้อัตโนมัติ`,"ลบ",true)){try{await S.db.doc("shop/"+d.id).delete();logAdmin("shop","ลบสินค้า "+it.name);toast("ลบแล้ว")}catch(x){writeErr(x)}}break}
+   case"deliver":setDelivery(d.uid,d.oid,"delivered");break;
+   case"refund":if(await confirmBox("คืนเพชร","คืนเพชรให้ผู้ซื้อ และยกเลิกคำสั่งซื้อนี้?","คืนเพชร",true))setDelivery(d.uid,d.oid,"refunded");break;
+   case"verify":verifyReq(d.uid,d.k,false);break;
+   case"automode":S.autoMode=!S.autoMode;toast(S.autoMode?"เริ่มตรวจสลิปอัตโนมัติ เปิดหน้านี้ค้างไว้":"หยุดตรวจอัตโนมัติแล้ว");viewAdminDyn(true);autoKick();break;
+   case"approve":{const r=S.allTopups[d.uid].reqs[d.k],v=((S.verify[d.uid]||{}).c||{})[d.k];openModal(`<h3>อนุมัติการเติมเงิน</h3><div>${esc(prof(d.uid).nick)} โอน <b>${fmtB(r.baht)} บาท</b> ${v?(v.pass?'<span class="vbadge pass">ผ่านการตรวจ</span>':'<span class="vbadge fail">ไม่ผ่านการตรวจ</span>'):""}</div><label for="apPts">จำนวนเพชรที่ให้<input type="number" id="apPts" min="1" value="${ptsFor(r.baht)}"></label>
+     <div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ยกเลิก</button><button class="btn pri" id="apOk">อนุมัติ</button></div>`,{onMount:b=>{$("#apOk",b).onclick=()=>{const v2=Math.floor(num($("#apPts").value));if(v2<1)return;closeModal();approveReq(d.uid,d.k,v2)}}});break}
+   case"reject":openModal(`<h3>ไม่อนุมัติ</h3><label for="rjWhy">เหตุผล (ผู้ใช้จะเห็น)<input type="text" id="rjWhy" maxlength="80" value="ไม่พบยอดโอน"></label><div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ยกเลิก</button><button class="btn pri danger" id="rjOk">ยืนยัน</button></div>`,
+     {onMount:b=>{$("#rjOk",b).onclick=()=>{const w=$("#rjWhy").value.trim()||"ไม่อนุมัติ";closeModal();approveReq(d.uid,d.k,0,w)}}});break;
+   case"bonus":openModal(`<h3>ปรับเพชร</h3><div>${esc(prof(d.uid).nick)} · คงเหลือ <b>${fmtN(balance(d.uid))}</b></div><label for="bnPts">เพิ่ม (ใส่ค่าติดลบเพื่อหัก)<input type="number" id="bnPts" value="10"></label>
+     <div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ยกเลิก</button><button class="btn pri" id="bnOk">บันทึก</button></div>`,{onMount:b=>{$("#bnOk",b).onclick=()=>{const v=Math.floor(num($("#bnPts").value));if(!v)return;closeModal();approveReq(d.uid,"bonus_"+rid()+"_"+Date.now(),v)}}});break;
+   case"userhist":{const p=prof(d.uid);openModal(`<h3>ประวัติของ ${esc(p.nick)} <span class="muted small">@${esc(p.username)}</span></h3><div class="row"><span>คงเหลือ 💎 <b>${fmtN(balance(d.uid))}</b></span><span class="muted">ได้รับทั้งหมด ${fmtN(grantedTotal(d.uid))}</span></div>${evTable(allEvents().filter(e=>e.uid===d.uid&&!e.adm||e.adm&&e.uid===d.uid))}<button class="btn" onclick="closeModal()">ปิด</button>`,{wide:true});break}
+   case"resetpw":openModal(`<h3>ตั้งรหัสผ่านใหม่ให้ ${esc(prof(d.uid).nick)}</h3><div class="small muted">@${esc(prof(d.uid).username)} · แจ้งรหัสใหม่ให้เจ้าของบัญชีเอง</div><label for="arp">รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)<input type="text" id="arp" autocomplete="off"></label><div class="err" id="arpErr"></div>
+     <div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ยกเลิก</button><button class="btn pri" id="arpOk">บันทึก</button></div>`,{onMount:b=>{$("#arpOk",b).onclick=async()=>{const v=$("#arp").value;if(v.length<6)return $("#arpErr").textContent="อย่างน้อย 6 ตัวอักษร";
+     try{await claude.auth.adminReset(d.uid,v);logAdmin("member","ตั้งรหัสผ่านใหม่ให้ "+prof(d.uid).nick);closeModal();toast("ตั้งรหัสใหม่แล้ว")}catch(e){$("#arpErr").textContent=e.message||"ไม่สำเร็จ"}}}});break;
+   case"copycsv":copyText(csvOf(filteredEvents()));break;
+   case"setpin":openSetPin();break;
+   case"delpin":if(await confirmBox("ลบ PIN","เข้าหลังบ้านได้โดยไม่ต้องใส่ PIN?","ลบ PIN",true)){try{await S.db.doc(`data/users/${S.uid}/adminpin`).delete();S.adminPin=null;logAdmin("settings","ลบ PIN หลังบ้าน");toast("ลบ PIN แล้ว");viewAdminDyn(true)}catch(x){writeErr(x)}}break;
+   case"zoom":openModal(`<img src="${esc(d.src)}" alt="สลิป" style="border-radius:12px;width:100%"><button class="btn" onclick="closeModal()">ปิด</button>`);break;
+   case"reply":{const m=allMsgs().find(x=>x.id===d.mid&&x.uid===d.muid);if(m)setReply(m);break}
+   case"delmsg":e.stopPropagation();delMsg(d.muid,d.mid);break;
+   case"clearchat":if(await confirmBox("ล้างแชท","ลบข้อความแชททั้งหมดของทุกคน?","ล้างทั้งหมด",true)){for(const uid of Object.keys(S.chats)){await enqueue("chat/"+uid,()=>safeSet("chat/"+uid,{msgs:[]}))}logAdmin("chat","ล้างแชททั้งหมด");toast("ล้างแชทแล้ว")}break;
+  }});
+
+
+/* ================= school vote (Chanthaburi) ================= */
+const DISTRICTS=["เมืองจันทบุรี","ขลุง","ท่าใหม่","โป่งน้ำร้อน","มะขาม","แหลมสิงห์","สอยดาว","แก่งหางแมว","นายายอาม","เขาคิชฌกูฏ"];
+const DCOL={"เมืองจันทบุรี":"#ff4f8b","ขลุง":"#14b394","ท่าใหม่":"#3b8cff","โป่งน้ำร้อน":"#f59e0b","มะขาม":"#ca8a04","แหลมสิงห์":"#ec4899","สอยดาว":"#9a5cf6","แก่งหางแมว":"#0891b2","นายายอาม":"#ff6f4f","เขาคิชฌกูฏ":"#65a30d"};
+const RANKC=["#f5b301","#94a3b8","#cd7f32","#ff4f8b","#3b8cff","#14b394","#9a5cf6","#ff6f4f","#0891b2","#65a30d"];
+const SC_TYPES=["ประถม","มัธยม","เอกชน","อาชีวะ","อื่นๆ"];
+const SC_DEFAULT={title:"โหวตโรงเรียนในดวงใจ จังหวัดจันทบุรี",desc:"เลือกโรงเรียนของคุณแล้วกดโหวต คนละ 1 เสียง ผลอัปเดตสด",open:true,startAt:0,endAt:0,allowChange:false,showLive:true,resetAt:0};
+S.scList=[];S.scConf={...SC_DEFAULT};S.scDistrict="all";S.scQ="";S.bigOpen=false;
+const dcol=d=>DCOL[d]||"#7d6886";
+let _ST=null;
+function scStatus(now=Date.now()){const c=S.scConf;if(c.open===false)return"closed";if(c.startAt&&now<c.startAt)return"up";if(c.endAt&&now>=c.endAt)return"end";return"live"}
+function schoolTally(){if(_ST)return _ST;const c=S.scConf,ids=new Map(S.scList.map(s=>[s.id,s])),cnt={},byD={};let total=0;
+  for(const [uid,b] of Object.entries(S.ballots)){const v=b.school;if(!v||!ids.has(v.id))continue;const at=num(v.at);
+    if(c.resetAt&&at<c.resetAt)continue;if(c.startAt&&at<c.startAt)continue;if(c.endAt&&at>c.endAt+5000)continue;
+    cnt[v.id]=(cnt[v.id]||0)+1;total++;const d=ids.get(v.id).d;byD[d]=(byD[d]||0)+1}
+  const ranked=S.scList.filter(s=>cnt[s.id]).sort((a,b)=>cnt[b.id]-cnt[a.id]||a.n.localeCompare(b.n,"th"));
+  _ST={cnt,total,ranked,byD};return _ST}
+function mySchool(){const b=S.ballots[S.uid],v=b&&b.school;if(!v)return null;if(S.scConf.resetAt&&num(v.at)<S.scConf.resetAt)return null;return S.scList.find(s=>s.id===v.id)?v:null}
+function scSubscribe(){
+  sub(S.db.doc("schoolvote/list"),"sclist",s=>{S.scList=s.exists&&Array.isArray(s.data().schools)?s.data().schools:[];_ST=null;dirty("view");renderBig();if(!s.exists&&!s.metadata.fromCache&&S.isOwner)seedSchools(false)});
+  sub(S.db.doc("schoolvote/config"),"scconf",s=>{S.scConf={...SC_DEFAULT,...(s.exists?s.data():{})};_ST=null;dirty("view");renderBig()});
+}
+function lbHTML(n=10,big=false){const T=schoolTally(),top=T.ranked.slice(0,n),max=top.length?T.cnt[top[0].id]:1;
+  if(!top.length)return `<div class="${big?"":"muted"}" style="padding:1rem 0;text-align:center">ยังไม่มีคะแนนโหวต มาเป็นคนแรกกัน!</div>`;
+  return `<div class="lb">${top.map((s,i)=>{const c=RANKC[i]||dcol(s.d),v=T.cnt[s.id],pct=T.total?Math.round(v/T.total*1000)/10:0,k="sc"+(big?"B":"")+":"+s.id;
+    return `<div class="lbrow ${i<3?"top":""} r${i+1}" style="--c:${c}"><div class="fill" data-k="${k}" data-w="${(v/max*100).toFixed(1)}" style="width:${S.prevW[k]||0}%"></div>
+      <div class="rk">${i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</div><div class="nm">${esc(s.n)}<small><span style="color:${dcol(s.d)}">●</span> อ.${esc(s.d)} · ${esc(s.t||"")}</small></div>
+      <div class="vt"><b>${fmtN(v)}</b><span class="small ${big?"muted":"muted"}">${pct}%</span></div></div>`}).join("")}</div>`}
+function animateFill(){requestAnimationFrame(()=>requestAnimationFrame(()=>{$$(".fill[data-w]").forEach(el=>{el.style.width=el.dataset.w+"%";S.prevW[el.dataset.k]=el.dataset.w})}))}
+function viewSchoolStatic(v){const c=S.scConf;
+  v.innerHTML=`<div class="hero"><div style="flex:1;min-width:240px"><h1 id="scTitle"></h1><p class="muted" style="margin:.2rem 0 0" id="scDesc"></p></div>
+    <div class="stats"><span class="stat"><b class="num" id="scTotal">0</b>เสียงโหวต</span><span class="stat"><b class="num">${fmtN(S.scList.length)}</b>โรงเรียน</span><span class="stat cd" id="scCd"></span></div></div>
+   <div class="stack" style="padding-bottom:1rem">
+    <section class="card stack"><div class="row"><h2 style="font-size:1.3rem">อันดับ 1-10 สด</h2><span class="chip live">อัปเดตอัตโนมัติ</span><div class="spacer"></div><button class="btn pri" data-act="bigscreen">เปิดจอสรุปผลแบบเต็มจอ</button></div><div id="scLB"></div></section>
+    <div id="scMine"></div>
+    <section class="card stack"><h2 style="font-size:1.3rem">เลือกโรงเรียนของคุณ</h2>
+     <label for="scQ">ค้นหาชื่อโรงเรียน<input type="text" id="scQ" placeholder="พิมพ์บางส่วนของชื่อ เช่น เบญจม, วัดพลับ" autocomplete="off"></label>
+     <div class="dchips" id="scD"></div>
+     <div class="sclist" id="scList"></div>
+     <div class="small muted">ไม่เจอโรงเรียนของคุณ? แจ้งแอดมินในแชทด้านล่างเพื่อเพิ่มรายชื่อ</div></section></div>`;
+  const q=$("#scQ");q.value=S.scQ;q.oninput=()=>{S.scQ=q.value;scListRender()}}
+function viewSchoolDyn(){if(!$("#scLB"))return;const c=S.scConf,T=schoolTally(),st=scStatus();
+  $("#scTitle").textContent=c.title||SC_DEFAULT.title;$("#scDesc").textContent=c.desc||"";$("#scTotal").textContent=fmtN(T.total);
+  const cd=$("#scCd");cd.dataset.cd="";cd.dataset.s=num(c.startAt);cd.dataset.e=num(c.endAt);if(c.open===false){delete cd.dataset.cd;cd.textContent="ปิดโหวตอยู่"}
+  $("#scLB").innerHTML=(c.showLive===false&&st!=="end"&&!S.isOwner)?'<div class="notice">ผลโหวตจะประกาศเมื่อปิดโหวต</div>':lbHTML(10);
+  const m=mySchool(),ms=m&&S.scList.find(s=>s.id===m.id);
+  $("#scMine").innerHTML=ms?`<div class="myschool" style="--c:${dcol(ms.d)}"><span style="font-size:1.8rem">💖</span><div style="flex:1;min-width:200px"><div class="small muted">คุณโหวตให้</div><b style="font-family:var(--display);font-size:1.15rem">${esc(ms.n)}</b><div class="small muted">อ.${esc(ms.d)} · โหวตเมื่อ ${fmtDT(m.at)} · ตอนนี้ได้ ${fmtN(T.cnt[ms.id]||0)} เสียง${T.ranked.findIndex(x=>x.id===ms.id)>=0?" · อันดับ "+(T.ranked.findIndex(x=>x.id===ms.id)+1):""}</div></div>${S.scConf.allowChange&&st==="live"?'<button class="btn" data-act="scunvote">เปลี่ยนโรงเรียน</button>':'<span class="chip">1 คน 1 เสียง</span>'}</div>`:
+    st==="live"?"":`<div class="notice">${st==="up"?"ยังไม่เปิดโหวต":st==="end"?"ปิดโหวตแล้ว ขอบคุณทุกเสียง":"แอดมินปิดการโหวตชั่วคราว"}</div>`;
+  const counts={};S.scList.forEach(s=>counts[s.d]=(counts[s.d]||0)+1);
+  $("#scD").innerHTML=`<button class="dchip" style="--c:var(--ink)" aria-pressed="${S.scDistrict==="all"}" data-act="scd" data-d="all">ทุกอำเภอ <span class="small">${S.scList.length}</span></button>`+
+    DISTRICTS.concat(Object.keys(counts).filter(d=>!DISTRICTS.includes(d))).filter(d=>counts[d]).map(d=>`<button class="dchip" style="--c:${dcol(d)}" aria-pressed="${S.scDistrict===d}" data-act="scd" data-d="${esc(d)}"><i></i>${esc(d)} <span class="small">${counts[d]}</span></button>`).join("");
+  scListRender();animateFill();cdUpdate()}
+function scListRender(){const box=$("#scList");if(!box)return;const T=schoolTally(),m=mySchool(),st=scStatus(),q=S.scQ.trim().replace(/^โรงเรียน/,"").toLowerCase();
+  let list=S.scList.filter(s=>(S.scDistrict==="all"||s.d===S.scDistrict)&&(!q||s.n.toLowerCase().includes(q)));
+  if(!S.loaded.sclist){box.innerHTML='<div class="empty"><div class="spin"></div>กำลังโหลดรายชื่อ…</div>';return}
+  if(!list.length){box.innerHTML=`<div class="muted" style="padding:1rem">ไม่พบโรงเรียน${q?` ที่มีคำว่า “${esc(S.scQ)}”`:""}</div>`;return}
+  const groups={};list.forEach(s=>(groups[s.d]=groups[s.d]||[]).push(s));
+  const order=DISTRICTS.concat(Object.keys(groups).filter(d=>!DISTRICTS.includes(d)));
+  const sTop=box.scrollTop;
+  box.innerHTML=order.filter(d=>groups[d]).map(d=>`<div class="schead" style="--c:${dcol(d)}"><i></i>อำเภอ${esc(d)} <span class="small muted">${groups[d].length} โรงเรียน · ${fmtN(T.byD[d]||0)} เสียง</span></div>`+
+    groups[d].sort((a,b)=>a.n.localeCompare(b.n,"th")).map(s=>{const mine=m&&m.id===s.id;return `<div class="scrow ${mine?"mine":""}" style="--c:${dcol(s.d)}"><div class="nm">${esc(s.n)}<small>${esc(s.t||"")}</small></div><span class="cnt">${fmtN(T.cnt[s.id]||0)} เสียง</span>
+      ${mine?'<button class="btn sm done" disabled>✓ โหวตแล้ว</button>':(m||st!=="live")?'':`<button class="btn sm pri" data-act="scvote" data-id="${s.id}">โหวต</button>`}</div>`}).join("")).join("");
+  box.scrollTop=sTop}
+async function scVote(id){const s=S.scList.find(x=>x.id===id);if(!s)return;if(scStatus()!=="live")return toast("ตอนนี้ไม่ได้เปิดโหวต");if(mySchool())return toast("คุณโหวตไปแล้ว คนละ 1 เสียง");
+  if(!await confirmBox("ยืนยันโหวตโรงเรียน",`โหวตให้ <b>${esc(s.n)}</b> อ.${esc(s.d)} ใช่ไหม?<br><span class="small muted">${S.scConf.allowChange?"เปลี่ยนได้ภายหลังจนกว่าจะปิดโหวต":"คนละ 1 เสียง ยืนยันแล้วเปลี่ยนไม่ได้"}</span>`,"ยืนยันโหวต"))return;
+  const path="ballots/"+S.uid;
+  await enqueue(path,async()=>{const b=clone(S.ballots[S.uid]||{votes:{},boosts:[]});delete b.id;if(b.school&&!(S.scConf.resetAt&&num(b.school.at)<S.scConf.resetAt)&&S.scList.some(x=>x.id===b.school.id))return;
+    b.school={id,at:Date.now()};S.ballots[S.uid]={id:S.uid,...b};invalidate();renderView();renderBig();
+    if(await safeSet(path,b))toast("โหวตให้ "+s.n+" แล้ว 🎉")})}
+async function scUnvote(){if(!S.scConf.allowChange)return;if(!await confirmBox("เปลี่ยนโรงเรียน","ยกเลิกโหวตเดิมเพื่อเลือกโรงเรียนใหม่?","ยกเลิกโหวตเดิม"))return;const path="ballots/"+S.uid;
+  await enqueue(path,async()=>{const b=clone(S.ballots[S.uid]||{});delete b.id;delete b.school;S.ballots[S.uid]={id:S.uid,...b};invalidate();renderView();renderBig();await safeSet(path,b)})}
+/* big screen */
+function openBig(){S.bigOpen=true;const el=document.createElement("div");el.className="bigscr";el.id="big";el.setAttribute("role","dialog");el.setAttribute("aria-label","จอสรุปผลโหวต");document.body.appendChild(el);renderBig();
+  try{el.requestFullscreen&&el.requestFullscreen().catch(()=>{})}catch(e){}}
+function closeBig(){S.bigOpen=false;const el=$("#big");if(el)el.remove();try{document.fullscreenElement&&document.exitFullscreen()}catch(e){}}
+function renderBig(){if(!S.bigOpen)return;const el=$("#big");if(!el)return;const c=S.scConf,T=schoolTally();
+  const dl=DISTRICTS.map(d=>{const top=T.ranked.find(s=>s.d===d);return top?`<div style="--c:${dcol(d)}"><span class="muted small">อ.${esc(d)} · ${fmtN(T.byD[d]||0)} เสียง</span><br><b>${esc(top.n)}</b> <span class="muted">${fmtN(T.cnt[top.id])}</span></div>`:""}).join("");
+  el.innerHTML=`<div class="row" style="margin-bottom:1rem"><div style="flex:1;min-width:260px"><div class="muted">ผลโหวตสด · อัปเดตอัตโนมัติ</div><h1>${esc(c.title||SC_DEFAULT.title)}</h1></div>
+    <div class="stats"><span class="stat"><b class="num">${fmtN(T.total)}</b>เสียงโหวต</span><span class="stat"><b class="num">${fmtN(T.ranked.length)}</b>โรงเรียนที่มีคะแนน</span><span class="stat cd" data-cd data-s="${num(c.startAt)}" data-e="${num(c.endAt)}"></span></div>
+    <button class="btn" data-act="closebig" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.25)">ปิดจอใหญ่ ✕</button></div>
+   ${lbHTML(10,true)}
+   ${dl?`<h3 style="margin:1.4rem 0 .6rem">โรงเรียนที่นำในแต่ละอำเภอ</h3><div class="dlead">${dl}</div>`:""}`;
+  animateFill();cdUpdate()}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.bigOpen)closeBig()});
+/* admin: schools */
+function adminSchools(m){const openD=new Set($$("#admMain details[open]").map(x=>x.dataset.d));const c=S.scConf,T=schoolTally(),groups={};S.scList.forEach(s=>(groups[s.d]=groups[s.d]||[]).push(s));
+  m.innerHTML=`<div class="row"><h2>โหวตโรงเรียน</h2><div class="spacer"></div><button class="btn" data-act="tab" data-tab="school">ดูหน้าโหวต</button><button class="btn pri" data-act="scadd">+ เพิ่มโรงเรียน</button></div>
+   <div class="kpis"><div class="kpi"><span>โรงเรียนในระบบ</span><b>${fmtN(S.scList.length)}</b></div><div class="kpi"><span>เสียงโหวต</span><b>${fmtN(T.total)}</b></div><div class="kpi"><span>อันดับ 1</span><b style="font-size:1.05rem">${T.ranked[0]?esc(T.ranked[0].n):"-"}</b></div>
+    <div class="kpi"><span>สถานะ</span><b style="font-size:1.1rem">${{live:"เปิดโหวต",up:"ยังไม่เริ่ม",end:"ปิดแล้ว",closed:"ปิดชั่วคราว"}[scStatus()]}</b></div></div>
+   <form class="card stack" id="scConfForm"><h3>ตั้งค่าการโหวต</h3>
+    <label for="scT">หัวข้อ<input type="text" id="scT" maxlength="80" value="${esc(c.title)}"></label>
+    <label for="scDs">คำอธิบาย<input type="text" id="scDs" maxlength="160" value="${esc(c.desc)}"></label>
+    <div class="grid2"><label for="scS">เริ่มโหวต (เว้นว่าง = ทันที)<input type="datetime-local" id="scS" value="${toLocalInput(c.startAt)}"></label><label for="scE">ปิดโหวต (เว้นว่าง = ไม่จำกัด)<input type="datetime-local" id="scE" value="${toLocalInput(c.endAt)}"></label></div>
+    <label class="check"><input type="checkbox" id="scOpen" ${c.open!==false?"checked":""}> เปิดให้โหวต</label>
+    <label class="check"><input type="checkbox" id="scChg" ${c.allowChange?"checked":""}> ให้เปลี่ยนโรงเรียนได้ (ปิด = 1 คน 1 เสียง เปลี่ยนไม่ได้)</label>
+    <label class="check"><input type="checkbox" id="scLive" ${c.showLive!==false?"checked":""}> แสดงผลสดให้ทุกคนเห็น</label>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn danger" data-act="screset">ล้างผลโหวตทั้งหมด</button><button class="btn pri" type="submit">บันทึก</button></div></form>
+   <div class="card stack"><div class="row"><h3>รายชื่อโรงเรียนแยกอำเภอ</h3><div class="spacer"></div><button class="btn sm" data-act="scseed">เติมรายชื่อเริ่มต้นที่ขาด</button><button class="btn sm" data-act="scimport">นำเข้าหลายรายการ</button></div>
+    ${DISTRICTS.concat(Object.keys(groups).filter(d=>!DISTRICTS.includes(d))).filter(d=>groups[d]).map(d=>`<details data-d="${esc(d)}" ${openD.has(d)?"open":""}><summary class="schead" style="--c:${dcol(d)};cursor:pointer"><i></i>อำเภอ${esc(d)} <span class="small muted">${groups[d].length} โรงเรียน · ${fmtN(T.byD[d]||0)} เสียง</span></summary>
+      <div class="stack" style="gap:.35rem;margin:.4rem 0 .8rem">${groups[d].sort((a,b)=>(T.cnt[b.id]||0)-(T.cnt[a.id]||0)||a.n.localeCompare(b.n,"th")).map(s=>`<div class="scrow" style="--c:${dcol(d)}"><div class="nm">${esc(s.n)}<small>${esc(s.t||"")}</small></div><span class="cnt">${fmtN(T.cnt[s.id]||0)} เสียง</span><div class="row"><button class="btn sm" data-act="scedit" data-id="${s.id}">แก้ไข</button><button class="btn sm danger" data-act="scdel" data-id="${s.id}">ลบ</button></div></div>`).join("")}</div></details>`).join("")||'<div class="muted">ยังไม่มีรายชื่อ</div>'}</div>`;
+  $("#scConfForm").onsubmit=async e=>{e.preventDefault();const d={...clone(S.scConf),title:$("#scT").value.trim()||SC_DEFAULT.title,desc:$("#scDs").value.trim(),startAt:$("#scS").value?new Date($("#scS").value).getTime():0,endAt:$("#scE").value?new Date($("#scE").value).getTime():0,
+    open:$("#scOpen").checked,allowChange:$("#scChg").checked,showLive:$("#scLive").checked};
+    if(d.endAt&&d.endAt<=Date.now()&&!await confirmBox("เวลาปิดโหวตผ่านไปแล้ว",`คุณตั้งปิดโหวต ${fmtDT(d.endAt)} ซึ่งผ่านมาแล้ว ทุกคนจะโหวตไม่ได้ ตรวจเดือน/ปีอีกครั้ง<br>ยังต้องการบันทึกแบบนี้ไหม?`,"บันทึกต่อ",true))return;
+    if(d.startAt&&d.endAt&&d.endAt<=d.startAt){toast("เวลาปิดต้องอยู่หลังเวลาเริ่ม");return}
+    await enqueue("schoolvote/config",async()=>{if(await safeSet("schoolvote/config",d)){S.scConf=d;_ST=null;logAdmin("school","แก้ไขการตั้งค่าโหวตโรงเรียน");toast("บันทึกแล้ว")}})}}
+async function saveSchools(list,msg){await enqueue("schoolvote/list",async()=>{if(await safeSet("schoolvote/list",{schools:list})){S.scList=list;_ST=null;if(msg){logAdmin("school",msg);toast(msg)}dirty("view")}})}
+function openSchoolEditor(id){const s=id?S.scList.find(x=>x.id===id):{n:"",d:DISTRICTS[0],t:"ประถม"};
+  openModal(`<h3>${id?"แก้ไขโรงเรียน":"เพิ่มโรงเรียน"}</h3><label for="seN">ชื่อโรงเรียน (ไม่ต้องพิมพ์คำว่าโรงเรียน)<input type="text" id="seN" maxlength="90" value="${esc(s.n)}"></label>
+   <div class="grid2"><label for="seD">อำเภอ<select id="seD">${DISTRICTS.map(d=>`<option ${d===s.d?"selected":""}>${d}</option>`).join("")}</select></label><label for="seT">ประเภท<select id="seT">${SC_TYPES.map(t=>`<option ${t===s.t?"selected":""}>${t}</option>`).join("")}</select></label></div>
+   <div class="err" id="seErr"></div><div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ยกเลิก</button><button class="btn pri" id="seOk">บันทึก</button></div>`,
+  {onMount:b=>{$("#seOk",b).onclick=async()=>{const n=$("#seN").value.trim().replace(/^โรงเรียน/,"").trim();if(!n)return $("#seErr").textContent="ใส่ชื่อโรงเรียน";
+    const d=$("#seD").value,t=$("#seT").value;if(S.scList.some(x=>x.id!==id&&x.n===n&&x.d===d))return $("#seErr").textContent="มีโรงเรียนนี้ในอำเภอนี้แล้ว";
+    const list=S.scList.map(x=>({...x}));if(id){const x=list.find(y=>y.id===id);Object.assign(x,{n,d,t})}else list.push({id:"s"+rid(),n,d,t});
+    closeModal();saveSchools(list,(id?"แก้ไข":"เพิ่ม")+"โรงเรียน "+n)}}})}
+function openSchoolImport(){openModal(`<h3>นำเข้ารายชื่อโรงเรียน</h3><p class="small muted" style="margin:0">บรรทัดละ 1 โรงเรียน รูปแบบ <b>อำเภอ|ชื่อโรงเรียน|ประเภท</b> (ประเภทไม่ใส่ก็ได้)</p>
+  <textarea id="imT" style="min-height:200px" placeholder="ท่าใหม่|บ้านตัวอย่าง|ประถม"></textarea><label class="check"><input type="checkbox" id="imR"> แทนที่รายชื่อเดิมทั้งหมด (ผลโหวตของโรงเรียนที่หายไปจะไม่นับ)</label>
+  <div class="err" id="imErr"></div><div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ยกเลิก</button><button class="btn pri" id="imOk">นำเข้า</button></div>`,
+  {wide:true,onMount:b=>{$("#imOk",b).onclick=()=>{const rows=$("#imT").value.split(/\n+/).map(l=>l.split("|").map(x=>x.trim())).filter(r=>r[0]&&r[1]);if(!rows.length)return $("#imErr").textContent="ไม่พบข้อมูลในรูปแบบที่กำหนด";
+    const base=$("#imR").checked?[]:S.scList.map(x=>({...x}));let added=0;
+    for(const r of rows){const d=r[0].replace(/^อ(ำเภอ|\.)\s*/,""),n=r[1].replace(/^โรงเรียน/,"").trim();if(base.some(x=>x.n===n&&x.d===d))continue;base.push({id:"s"+rid()+added,n,d,t:r[2]||"อื่นๆ"});added++}
+    closeModal();saveSchools(base,`นำเข้าโรงเรียน ${added} รายการ`)}}})}
+
+let seeding=false;
+async function seedSchools(replace){if(seeding)return;seeding=true;try{const r=await fetch("schools.json");if(!r.ok)throw 0;const d=await r.json();
+  const list=replace?d.schools:S.scList.concat(d.schools.filter(x=>!S.scList.some(y=>y.n===x.n&&y.d===x.d)));
+  await saveSchools(list,`โหลดรายชื่อโรงเรียนจันทบุรี ${d.schools.length} แห่ง`)}catch(e){console.warn(e);toast("โหลดรายชื่อเริ่มต้นไม่สำเร็จ")}seeding=false}
+
+boot();
+</script>
+</body>
+</html>
