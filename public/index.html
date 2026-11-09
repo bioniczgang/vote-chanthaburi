@@ -328,6 +328,47 @@ nav.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .bigscr .stat b{color:#fff}
 .bigscr .dlead{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.5rem}
 .bigscr .dlead div{background:rgba(255,255,255,.06);border-radius:12px;padding:.5rem .7rem;border-left:4px solid var(--c);font-size:.9rem}
+/* ---- v3: diamond school vote, winner popup, chat notifications ---- */
+.lbrow .nm small.brk{font-size:.78rem}
+.lbrow .vt{display:grid;justify-items:end;gap:.15rem}
+.lbrow .vt .btn{margin-top:.15rem;padding:.2rem .6rem}
+.scrow{grid-template-columns:1fr auto auto}
+.scbtns{display:flex;gap:.35rem;justify-content:flex-end}
+.scbtns .btn.boost{padding-inline:.6rem}
+.feed{display:grid;gap:.35rem}
+.frow{display:flex;gap:.6rem;align-items:center;border:1.5px solid var(--line);border-radius:14px;padding:.45rem .7rem;background:var(--bg)}
+.frow .av{font-size:1.3rem}
+.frow .t{flex:1;min-width:0;overflow-wrap:anywhere}
+.wincard{position:relative;overflow:hidden;border-radius:var(--r);border:2px solid #f5b301;background:linear-gradient(120deg,color-mix(in srgb,#f5b301 26%,var(--surface)),color-mix(in srgb,var(--accent) 14%,var(--surface)));box-shadow:var(--shadow)}
+.wincard .wimg{display:block;width:100%;max-height:340px;object-fit:cover}
+.wincard .wc-in{padding:1rem 1.1rem 1.1rem;display:grid;gap:.4rem}
+.wc-k{font-family:var(--display);color:color-mix(in srgb,#b07d00 80%,var(--ink));font-weight:500}
+.wc-row{display:flex;gap:.8rem;align-items:center}
+.wc-row .tro{font-size:2.6rem;line-height:1}
+.wincard h2{font-size:clamp(1.3rem,3.4vw,1.9rem);font-weight:600}
+.wc-msg{margin:.2rem 0 0;white-space:pre-wrap}
+.bigscr .wincard{margin-bottom:1.2rem;background:linear-gradient(120deg,rgba(245,179,1,.28),rgba(255,79,139,.18));color:#fff;border-color:#f5b301}
+.bigscr .wincard h2{font-size:clamp(1.8rem,5vw,3.4rem)}
+.bigscr .wc-k{color:#ffd970}
+.winpop{position:relative;text-align:center;display:grid;gap:.45rem;justify-items:center;padding-top:.4rem;overflow:hidden}
+.winpop .wimg{width:100%;max-height:260px;object-fit:cover;border-radius:16px}
+.winpop .wp-k{font-family:var(--display);font-size:1.05rem;color:var(--muted)}
+.winpop .tro{font-size:3.4rem;line-height:1;animation:pop .7s cubic-bezier(.2,1.6,.4,1) both}
+.winpop h2{font-size:clamp(1.4rem,5vw,2rem);font-weight:600;background:linear-gradient(90deg,#d99a00,var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent}
+.wp-top{display:grid;gap:.25rem;margin-top:.3rem;font-size:.92rem;text-align:left}
+.confetti{position:absolute;inset:0;pointer-events:none}
+.confetti i{position:absolute;top:-12px;left:var(--x);width:8px;height:14px;border-radius:2px;background:var(--c);animation:fall 2.6s var(--d) ease-in forwards;opacity:.9}
+@keyframes fall{to{transform:translateY(520px) rotate(540deg);opacity:0}}
+@keyframes pop{from{transform:scale(.3);opacity:0}}
+@media (prefers-reduced-motion:reduce){.confetti{display:none}.winpop .tro{animation:none}}
+.announce .annimg{display:block;max-width:100%;max-height:320px;border-radius:12px;margin-bottom:.5rem}
+.cpops{position:fixed;right:16px;bottom:86px;z-index:65;display:grid;gap:.45rem;width:min(88vw,340px)}
+.cpop{display:flex;gap:.6rem;align-items:center;text-align:left;background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-left:5px solid var(--accent);border-radius:16px;padding:.55rem .75rem;box-shadow:0 12px 30px -10px rgba(60,10,50,.45);cursor:pointer;animation:tin .25s;transition:opacity .3s,transform .3s}
+.cpop.out{opacity:0;transform:translateX(20px)}
+.cpop .av{font-size:1.5rem}
+.cpop .t{min-width:0;display:grid}
+.cpop .x{font-size:.9rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#ntfBtn[aria-pressed="false"]{opacity:.7}
 </style>
 </head>
 <body>
@@ -533,10 +574,17 @@ function stockOf(item){return item.stock===""||item.stock==null?null:num(item.st
 let _L=null;
 function ledger(){if(_L)return _L;const ev=[];
   for(const [uid,b] of Object.entries(S.ballots))(Array.isArray(b.boosts)?b.boosts:[]).forEach(x=>ev.push({k:"b",uid,at:num(x.at),x}));
+  for(const [uid,b] of Object.entries(S.ballots))(Array.isArray(b.scBoosts)?b.scBoosts:[]).forEach(x=>ev.push({k:"s",uid,at:num(x.at),x}));
   for(const [uid,o] of Object.entries(S.orders))for(const [oid,x] of Object.entries(o.orders||{}))ev.push({k:"o",uid,oid,at:num(x.at),x});
   ev.sort((a,b)=>a.at-b.at);
-  const spent={},perPoll={},sold={},pu={},boosts=[],ord={},badge={};
+  const spent={},perPoll={},sold={},pu={},boosts=[],ord={},badge={},scb=[],scPer={};
+  const sc=S.scConf||{},scIds=new Set((S.scList||[]).map(s=>s.id)),scReset=num(sc.resetAt),scCap=num(sc.boostCap);
   for(const e of ev){const g=grantedTotal(e.uid),sp=spent[e.uid]||0;
+    if(e.k==="s"){const x=e.x,pts=Math.floor(num(x.pts));if(pts<=0||sp+pts>g)continue;
+      const old=scReset&&e.at<scReset;
+      if(!old){if(sc.allowBoost===false||!scIds.has(x.sid))continue;if(sc.startAt&&e.at<sc.startAt)continue;if(sc.endAt&&e.at>sc.endAt+5000)continue;
+        if(scCap>0&&(scPer[e.uid]||0)+pts>scCap)continue;scPer[e.uid]=(scPer[e.uid]||0)+pts}
+      spent[e.uid]=sp+pts;scb.push({id:x.id||"",uid:e.uid,sid:x.sid,name:x.name||"",pts,at:e.at,cur:!old});continue}
     if(e.k==="b"){const x=e.x,p=S.polls[x.pid],pts=Math.floor(num(x.pts));
       if(!p||!p.allowBoost||pts<=0||!inWindow(p,e.at)||!(p.options||[]).some(o=>o.id===x.opt))continue;
       const key=e.uid+"|"+x.pid,cap=num(p.boostCap);if(cap>0&&(perPoll[key]||0)+pts>cap)continue;
@@ -554,7 +602,7 @@ function ledger(){if(_L)return _L;const ev=[];
     spent[e.uid]=sp+cost;sold[x.item]=(sold[x.item]||0)+qty;pu[e.uid+x.item]=(pu[e.uid+x.item]||0)+qty;
     if(item.kind==="badge")badge[e.uid]=item.badge||item.emoji||"⭐";
     ord[key]={...base,valid:true,cost,reason:""}}
-  _L={spent,boosts,ord,sold,badge};return _L}
+  _L={spent,boosts,ord,sold,badge,scb,scPer};return _L}
 function invalidate(){_L=null;_ST=null}
 function balance(uid){return grantedTotal(uid)-(ledger().spent[uid]||0)}
 function myBoostIn(pid){return ledger().boosts.filter(x=>x.uid===S.uid&&x.pid===pid).reduce((s,x)=>s+x.pts,0)}
@@ -627,7 +675,8 @@ function dirty(what){if(!S.loggedIn){if(what==="all"&&!$("#authForm"))render();r
 function renderStale(){const el=$("#stale");if(el)el.classList.toggle("hide",!S.stale)}
 function tick(){if(!S.loggedIn)return;const now=Date.now();cdUpdate(now);
   const sig=Object.values(S.polls).map(p=>p.id+pollStatus(p,now)).join("|")+"|sc"+scStatus(now);
-  if(sig!==S.lastStatus){S.lastStatus=sig;invalidate();if(S.tab==="polls"||S.tab==="school")renderView()}}
+  if(sig!==S.lastStatus){S.lastStatus=sig;invalidate();if(S.tab==="polls"||S.tab==="school"||S.tab==="admin")renderView();renderBig()}
+  scCheckWinPopup()}
 function cdUpdate(now=Date.now()){$$("[data-cd]").forEach(el=>{const s=num(el.dataset.s),e=num(el.dataset.e);
   if(s&&now<s)el.textContent="เริ่มใน "+dur(s-now);else if(e&&now<e)el.textContent="เหลือเวลา "+dur(e-now);else if(e)el.textContent="ปิดโหวตแล้ว";else el.textContent="ไม่จำกัดเวลา"})}
 
@@ -651,7 +700,7 @@ function render(){if(!S.loggedIn)return renderAuth();
     <div id="stale" class="notice hide" style="margin-top:1rem">ยังติดต่อฐานข้อมูลไม่ได้ ข้อมูลที่เห็นอาจไม่อัปเดต ระบบจะลองเชื่อมต่อใหม่เอง</div>
     <div id="view"></div>
     <section class="card" id="chat" aria-label="ไลฟ์แชท">
-      <div class="chathead"><h3>ไลฟ์แชท</h3><span class="chip live" id="onCount">ออนไลน์ 1</span><div class="spacer"></div><span class="muted small">กดข้อความเพื่อตอบกลับ</span></div>
+      <div class="chathead"><h3>ไลฟ์แชท</h3><span class="chip live" id="onCount">ออนไลน์ 1</span><div class="spacer"></div><span class="muted small">กดข้อความเพื่อตอบกลับ</span><button class="btn sm" id="ntfBtn" data-act="ntf" title="ตั้งค่าการแจ้งเตือนแชท"></button></div>
       <div class="online" id="online"></div>
       <div class="msgs" id="msgs" aria-live="polite"></div>
       <div class="typingline" id="typing"></div>
@@ -666,10 +715,11 @@ function render(){if(!S.loggedIn)return renderAuth();
       </div>
     </section>
   </main>
-  <button class="fab" id="fab" aria-label="ไปที่แชท">💬<span class="badge hide" id="fabBadge">0</span></button>`;
-  renderHeader();renderTabs();renderView(true);renderOnline();renderChatMsgs(true);wireChat();renderStale();setPresence();
+  <button class="fab" id="fab" aria-label="ไปที่แชท">💬<span class="badge hide" id="fabBadge">0</span></button>
+  <div class="cpops" id="cpops" aria-live="polite"></div>`;
+  renderHeader();renderTabs();renderView(true);renderOnline();renderChatMsgs(true);wireChat();renderStale();setPresence();updNtfBtn();
 }
-function renderHeader(){const n=$("#hName");if(!n)return;n.textContent=S.settings.siteName||"โหวตกันเถอะ";document.title=S.settings.siteName||"โหวตกันเถอะ";
+function renderHeader(){const n=$("#hName");if(!n)return;n.textContent=S.settings.siteName||"โหวตกันเถอะ";document.title=(S.titleUnread?`(${S.titleUnread}) ข้อความใหม่ · `:"")+(S.settings.siteName||"โหวตกันเถอะ");
   const p=prof(S.uid);
   $("#hMe").innerHTML=`<button class="btn sm boost" data-act="tab" data-tab="topup" title="เพชรคงเหลือ">💎 <span class="bal num">${fmtN(balance(S.uid))}</span></button>
    <span class="me"><span class="av">${esc(p.av||"🙂")}</span><span><b>${nickHTML(S.uid)}</b>${S.isOwner?' <span class="adm">แอดมิน</span>':""}</span></span>
@@ -738,7 +788,7 @@ function viewPolls(v){const st=S.settings,now=Date.now();
   const live=list.filter(p=>pollStatus(p,now)==="live").length;
   let h=`<div class="hero"><div style="flex:1;min-width:240px"><h1>${esc(st.siteName)}</h1><p class="muted" style="margin:.2rem 0 0">${esc(st.tagline)}</p></div>
    <div class="stats"><span class="stat"><b class="num">${live}</b>กำลังเปิดโหวต</span><span class="stat"><b class="num">${Object.keys(S.profiles).length}</b>สมาชิก</span><span class="stat"><b class="num">${onlineList().length}</b>ออนไลน์</span></div></div>`;
-  if(st.announcement)h+=`<div class="announce">📣 ${esc(st.announcement)}</div>`;
+  if(st.announcement||(st.announcementImg&&st.announcementImg.url))h+=`<div class="announce">${st.announcementImg&&st.announcementImg.url?`<img class="annimg" src="${esc(st.announcementImg.url)}" alt="">`:""}${st.announcement?`<div style="white-space:pre-wrap">📣 ${esc(st.announcement)}</div>`:""}</div>`;
   if(!S.loaded.polls)h+=`<div class="empty"><div class="spin"></div>กำลังโหลดกิจกรรม…</div>`;
   else if(!list.length)h+=`<div class="card empty"><div class="big">🗳️</div><h3>ยังไม่มีกิจกรรมให้โหวต</h3><p>${S.isOwner?"ไปที่หลังบ้านเพื่อสร้างกิจกรรมแรก":"รอแอดมินเปิดกิจกรรมเร็วๆ นี้"}</p>${S.isOwner?'<button class="btn pri" data-act="newpoll">สร้างกิจกรรม</button>':""}</div>`;
   else h+=`<div class="polls">${list.map(pollCard).join("")}</div>`;
@@ -910,9 +960,10 @@ function myEvents(uid){const L=ledger(),ev=[];
   Object.entries(((uid===S.uid?S.myTopups:S.allTopups[uid])||{}).reqs||{}).forEach(([k,r])=>{const s=reqStatus(uid,k);ev.push({at:num(r.at),type:"top",title:`เติมเงิน ${fmtB(r.baht)} บาท (${METHOD_LABEL[r.method]||"โอน"})`,amt:s[0]==="ok"?"+"+fmtN(s[2]):"",st:s[1],cls:s[0]})});
   Object.entries((S.approvals[uid]||{}).granted||{}).filter(([k])=>k.startsWith("bonus_")).forEach(([k,v])=>ev.push({at:num(k.split("_")[2])||0,type:"adm",title:"ปรับเพชรโดยแอดมิน",amt:(num(v)>0?"+":"")+fmtN(v),st:"สำเร็จ",cls:"ok"}));
   L.boosts.filter(x=>x.uid===uid).forEach(x=>{const p=S.polls[x.pid],o=p&&p.options.find(y=>y.id===x.opt);ev.push({at:x.at,type:"boost",title:`เพิ่มคะแนน ${o?o.label:""} · ${p?p.title:""}`,amt:"-"+fmtN(x.pts),st:"สำเร็จ",cls:"ok"})});
+  L.scb.filter(x=>x.uid===uid).forEach(x=>{const s=S.scList.find(y=>y.id===x.sid);ev.push({at:x.at,type:"scboost",title:`โหวตโรงเรียน${s?s.n:x.name}`,amt:"-"+fmtN(x.pts),st:x.cur?"สำเร็จ":"สำเร็จ (รอบก่อน)",cls:"ok"})});
   Object.values(L.ord).filter(o=>o.uid===uid).forEach(o=>ev.push({at:o.at,type:"shop",title:`แลก ${o.name}`,amt:o.valid?"-"+fmtN(o.cost):"0",st:!o.valid?o.reason:o.state==="delivered"?"จัดส่งแล้ว":(S.shop[o.item]&&S.shop[o.item].kind==="badge"?"ใช้งานแล้ว":"รอจัดส่ง"),cls:!o.valid?"no":o.state==="delivered"||(S.shop[o.item]&&S.shop[o.item].kind==="badge")?"ok":"pending"}));
   return ev.sort((a,b)=>b.at-a.at)}
-const TYPE_LABEL={top:["เติมเงิน","t-top"],boost:["ใช้เพชรโหวต","t-boost"],shop:["ร้านค้า","t-shop"],adm:["แอดมิน","t-adm"],vote:["โหวต",""]};
+const TYPE_LABEL={top:["เติมเงิน","t-top"],boost:["ใช้เพชรโหวต","t-boost"],scboost:["เพชรโหวตโรงเรียน","t-boost"],shop:["ร้านค้า","t-shop"],adm:["แอดมิน","t-adm"],vote:["โหวต",""]};
 function viewMine(v){const ev=myEvents(S.uid);
   v.innerHTML=`<div class="hero"><div><h1>ประวัติของฉัน</h1><p class="muted" style="margin:.2rem 0 0">การเติมเงิน การใช้เพชร และของที่แลก</p></div><div class="spacer"></div><div class="stats"><span class="stat"><b class="num">💎 ${fmtN(balance(S.uid))}</b>คงเหลือ</span><span class="stat"><b class="num">${fmtN(grantedTotal(S.uid))}</b>ได้รับทั้งหมด</span></div></div>
   <div class="card stack" style="margin-bottom:1rem">${ev.length?`<div class="hist">${ev.map(e=>`<div class="hrow"><span class="tag ${TYPE_LABEL[e.type][1]}">${TYPE_LABEL[e.type][0]}</span><span style="flex:1;min-width:160px">${esc(e.title)}</span><b class="num">${e.amt?"💎 "+e.amt:""}</b><span class="small muted">${fmtDT(e.at)}</span><span class="st-${e.cls} small">${esc(e.st)}</span></div>`).join("")}</div>`:'<div class="muted">ยังไม่มีประวัติ</div>'}</div>`}
@@ -1093,12 +1144,13 @@ function adminMembers(m){const list=Object.values(S.profiles).sort((a,b)=>num(b.
 function allEvents(){const ev=[],L=ledger();
   for(const x of topupRows()){const p=prof(x.uid);ev.push({at:num(x.r.at),type:"top",uid:x.uid,title:`ส่งสลิป ${fmtB(x.r.baht)} บาท (${METHOD_LABEL[x.r.method]||"โอน"})${x.v?" · ตรวจ: "+(x.v.pass?"ผ่าน":"ไม่ผ่าน"):""}`,amt:x.st[0]==="ok"?"+"+fmtN(x.st[2]):"",st:x.st[1],cls:x.st[0],baht:num(x.r.baht)})}
   for(const x of L.boosts){const p=S.polls[x.pid],o=p&&p.options.find(y=>y.id===x.opt);ev.push({at:x.at,type:"boost",uid:x.uid,title:`ใช้เพชรเพิ่มคะแนน ${o?o.label:""} · ${p?p.title:""}`,amt:"-"+fmtN(x.pts),st:"สำเร็จ",cls:"ok"})}
+  for(const x of L.scb){const s=S.scList.find(y=>y.id===x.sid);ev.push({at:x.at,type:"scboost",uid:x.uid,title:`ใช้เพชรโหวตโรงเรียน${s?s.n:x.name}`,amt:"-"+fmtN(x.pts),st:x.cur?"สำเร็จ":"สำเร็จ (รอบก่อน)",cls:"ok"})}
   for(const o of Object.values(L.ord))ev.push({at:o.at,type:"shop",uid:o.uid,title:`แลก ${o.name}`,amt:o.valid?"-"+fmtN(o.cost):"0",st:o.valid?(o.state==="delivered"?"จัดส่งแล้ว":"สำเร็จ"):o.reason,cls:o.valid?"ok":"no"});
   for(const d of Object.values(S.adminlog))for(const e of d.e||[])ev.push({at:num(e.at),type:"adm",uid:e.uid||S.uid,title:e.text,amt:"",st:"",cls:"ok",adm:true});
   return ev.sort((a,b)=>b.at-a.at)}
 function evTable(ev){if(!ev.length)return'<div class="muted">ยังไม่มีรายการ</div>';
   return `<div class="tblwrap"><table class="tbl"><thead><tr><th>เวลา</th><th>ประเภท</th><th>ผู้ใช้</th><th>รายละเอียด</th><th class="num">เพชร</th><th>สถานะ</th></tr></thead><tbody>${ev.map(e=>{const p=prof(e.uid);return `<tr><td class="small num">${fmtDT(e.at)}</td><td><span class="tag ${TYPE_LABEL[e.type][1]}">${TYPE_LABEL[e.type][0]}</span></td><td class="small">${e.adm?"แอดมิน":esc(p.nick)+' <span class="muted">@'+esc(p.username)+"</span>"}</td><td>${esc(e.title)}</td><td class="num">${esc(e.amt)}</td><td class="small st-${e.cls}">${esc(e.st)}</td></tr>`}).join("")}</tbody></table></div>`}
-function adminHistoryShell(m){m.innerHTML=`<h2>ประวัติทั้งหมด</h2><div class="card filters"><label for="hType">ประเภท<select id="hType"><option value="all">ทั้งหมด</option><option value="top">เติมเงิน</option><option value="boost">ใช้เพชรโหวต</option><option value="shop">ร้านค้า</option><option value="adm">การกระทำของแอดมิน</option></select></label>
+function adminHistoryShell(m){m.innerHTML=`<h2>ประวัติทั้งหมด</h2><div class="card filters"><label for="hType">ประเภท<select id="hType"><option value="all">ทั้งหมด</option><option value="top">เติมเงิน</option><option value="boost">ใช้เพชรโหวตกิจกรรม</option><option value="scboost">ใช้เพชรโหวตโรงเรียน</option><option value="shop">ร้านค้า</option><option value="adm">การกระทำของแอดมิน</option></select></label>
   <label for="hQ" style="flex:1">ค้นหาชื่อ / username / รายละเอียด<input type="text" id="hQ" placeholder="พิมพ์เพื่อค้นหา"></label><button class="btn" data-act="copycsv">คัดลอกเป็น CSV</button></div>
   <div class="card" id="histList"></div>`;
   $("#hType").value=S.histFilter.type;$("#hQ").value=S.histFilter.q;
@@ -1112,7 +1164,8 @@ function adminSettings(m){const st=S.settings;
   m.innerHTML=`<h2>ตั้งค่า</h2><form class="stack" id="setForm">
    <div class="card stack"><h3>เว็บไซต์</h3>
     <div class="grid2"><label for="sName">ชื่อเว็บ<input type="text" id="sName" maxlength="40" value="${esc(st.siteName)}"></label><label for="sTag">คำโปรย<input type="text" id="sTag" maxlength="80" value="${esc(st.tagline)}"></label></div>
-    <label for="sAnn">ประกาศบนหน้าแรก (เว้นว่างเพื่อซ่อน)<input type="text" id="sAnn" maxlength="200" value="${esc(st.announcement)}"></label>
+    <label for="sAnn">ประกาศบนหน้าแรก (เว้นว่างเพื่อซ่อน · ขึ้นบรรทัดใหม่ได้)<textarea id="sAnn" maxlength="600">${esc(st.announcement)}</textarea></label>
+    ${S.assets?`<label for="sAnnI">รูปประกอบประกาศ (ไม่บังคับ)<input type="file" id="sAnnI" accept="image/png,image/jpeg,image/webp,image/gif"></label><div class="slipprev" id="sAnnPrev"></div>`:""}
     <label class="check"><input type="checkbox" id="sChat" ${st.chatEnabled!==false?"checked":""}> เปิดไลฟ์แชท</label></div>
    <div class="card stack"><h3>ช่องทางชำระเงิน</h3>
     <label class="check"><input type="checkbox" id="sPayPP" ${st.payPromptpay!==false?"checked":""}> พร้อมเพย์ / QR ธนาคาร</label>
@@ -1133,8 +1186,12 @@ function adminSettings(m){const st=S.settings;
    <div class="card stack"><h3>ความปลอดภัยหลังบ้าน</h3><div class="row"><span>${S.adminPin?"ตั้ง PIN แล้ว":"ยังไม่ได้ตั้ง PIN"}</span><div class="spacer"></div><button class="btn" data-act="setpin">${S.adminPin?"เปลี่ยน PIN":"ตั้ง PIN"}</button>${S.adminPin?'<button class="btn danger" data-act="delpin">ลบ PIN</button>':""}</div>
     <div class="small muted">ลิงก์ตรงเข้าหลังบ้าน: เพิ่ม #admin ท้ายลิงก์เว็บ</div></div>
    <div class="card stack"><h3>แชท</h3><div class="row"><button class="btn danger" data-act="clearchat">ล้างข้อความแชททั้งหมด</button><span class="small muted">ลบทีละข้อความได้จากปุ่มลบในห้องแชท</span></div></div>`;
+  let annImg=st.announcementImg&&st.announcementImg.url?{...st.announcementImg}:null;
+  const drawAnnImg=()=>{const pv=$("#sAnnPrev");if(!pv)return;pv.innerHTML=annImg?`<img src="${esc(annImg.url)}" alt="รูปประกาศ"><button type="button" class="btn sm" id="sAnnX">เอารูปออก</button><span class="small muted">กดบันทึกการตั้งค่าเพื่อใช้</span>`:"";const x=$("#sAnnX");if(x)x.onclick=()=>{annImg=null;drawAnnImg()}};drawAnnImg();
+  if($("#sAnnI"))$("#sAnnI").onchange=async e=>{const f=e.target.files[0];if(!f)return;if(f.size>8*1024*1024)return toast("รูปใหญ่เกิน 8MB");$("#sAnnPrev").innerHTML='<span class="small muted">กำลังอัปโหลด…</span>';
+    try{const r=await S.assets.upload(f);annImg={id:r.id,url:r.url}}catch(x){toast(x.message||"อัปโหลดรูปไม่สำเร็จ")}drawAnnImg()};
   $("#setForm").onsubmit=async e=>{e.preventDefault();const pk=$("#sPkg").value.split(/\n+/).map(l=>l.split("=").map(s=>num(s.trim()))).filter(a=>a[0]>0&&a[1]>0).map(a=>({baht:a[0],pts:Math.floor(a[1])}));
-    const d={...clone(S.settings),siteName:$("#sName").value.trim()||"โหวตกันเถอะ",tagline:$("#sTag").value.trim(),announcement:$("#sAnn").value.trim(),chatEnabled:$("#sChat").checked,
+    const d={...clone(S.settings),siteName:$("#sName").value.trim()||"โหวตกันเถอะ",tagline:$("#sTag").value.trim(),announcement:$("#sAnn").value.trim(),announcementImg:annImg,chatEnabled:$("#sChat").checked,
       payPromptpay:$("#sPayPP").checked,promptpay:$("#sPP").value.trim(),accountName:$("#sAcc").value.trim(),bankName:$("#sBankN").value.trim(),bankAccount:$("#sBankA").value.trim(),bankInfo:$("#sBank").value.trim(),
       payTrue:$("#sPayTW").checked,truePhone:$("#sTWP").value.trim(),trueName:$("#sTWN").value.trim(),
       matchNames:$("#sMatch").value.trim(),slipMaxAgeH:Math.max(1,num($("#sAge").value,24)),autoApprove:$("#sAuto").checked,
@@ -1208,9 +1265,33 @@ function renderChatMsgs(first){const box=$("#msgs");if(!box)return;const msgs=al
       <div class="acts"><button data-act="reply" data-mid="${esc(m.id)}" data-muid="${esc(m.uid)}">ตอบ</button>${me||S.isOwner?`<button data-act="delmsg" data-mid="${esc(m.id)}" data-muid="${esc(m.uid)}">ลบ</button>`:""}</div></div>`}).join(""):'<div class="sysline">ยังไม่มีข้อความ ทักทายกันหน่อย 👋</div>';
   if(first||near||S.chatFirst)box.scrollTop=box.scrollHeight;
   const last=msgs.length?num(msgs[msgs.length-1].t):0;
-  if(!S.chatFirst&&last>S.chatSeen&&!S.chatVisible){const n=msgs.filter(m=>num(m.t)>S.chatSeen&&m.uid!==S.uid).length;if(n){S.unread+=n;updFab()}}
+  if(!S.chatFirst&&last>S.chatSeen){const fresh=msgs.filter(m=>num(m.t)>S.chatSeen&&m.uid!==S.uid);if(fresh.length){if(!S.chatVisible){S.unread+=fresh.length;updFab()}chatNotify(fresh)}}
   if(S.chatVisible){S.unread=0;updFab()}
   if(S.loaded.chat)S.chatFirst=false;S.chatSeen=Math.max(S.chatSeen,last)}
+/* chat notifications: popup card, chime, tab title, system notification */
+const NTF_KEY="vt_ntf";
+function ntfOn(){return lsGet(NTF_KEY)!=="off"}
+function sysNtfOn(){return ntfOn()&&"Notification" in window&&Notification.permission==="granted"}
+function updNtfBtn(){const b=$("#ntfBtn");if(!b)return;b.textContent=ntfOn()?"🔔 แจ้งเตือน":"🔕 ปิดเสียง";b.setAttribute("aria-pressed",String(ntfOn()))}
+let actx=null;
+function chime(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const c=actx;if(c.state==="suspended")c.resume();const t=c.currentTime;
+  [[880,0],[1320,.11]].forEach(([f,d])=>{const o=c.createOscillator(),g=c.createGain();o.type="sine";o.frequency.value=f;g.gain.setValueAtTime(.0001,t+d);g.gain.exponentialRampToValueAtTime(.16,t+d+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d+.28);o.connect(g);g.connect(c.destination);o.start(t+d);o.stop(t+d+.3)})}catch(e){}}
+document.addEventListener("pointerdown",()=>{try{if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume()}catch(e){}},{once:true});
+let lastChime=0;
+function chatNotify(fresh){if(!ntfOn()||S.settings.chatEnabled===false&&!S.isOwner)return;const away=document.hidden,offscreen=!S.chatVisible||S.tab==="admin";
+  if(!away&&!offscreen)return;
+  if(Date.now()-lastChime>1500){chime();lastChime=Date.now()}
+  if(away){S.titleUnread=(S.titleUnread||0)+fresh.length;renderHeader();
+    if(sysNtfOn()){const m=fresh[fresh.length-1],p=prof(m.uid);try{const n=new Notification(`${p.nick} ในไลฟ์แชท`,{body:(fresh.length>1?`(+${fresh.length-1}) `:"")+m.text,tag:"vt-chat",renotify:true,silent:true});n.onclick=()=>{window.focus();openChat();n.close()}}catch(e){}}}
+  else fresh.slice(-2).forEach(cPop)}
+function cPop(m){const box=$("#cpops");if(!box)return;const p=prof(m.uid),el=document.createElement("button");el.className="cpop";el.type="button";
+  el.innerHTML=`<span class="av">${esc(p.av||"🙂")}</span><span class="t"><span><b>${nickHTML(m.uid)}</b>${isAdminUid(m.uid)?' <span class="adm">แอดมิน</span>':""}</span><span class="x">${esc(String(m.text).slice(0,90))}</span></span>`;
+  el.onclick=()=>{el.remove();if(S.tab==="admin")goTab("polls");setTimeout(openChat,50)};box.appendChild(el);while(box.children.length>3)box.firstChild.remove();setTimeout(()=>{el.classList.add("out");setTimeout(()=>el.remove(),300)},6000)}
+function openChat(){const c=$("#chat");if(!c)return;c.scrollIntoView({behavior:"smooth",block:"end"});setTimeout(()=>{const i=$("#chatIn");i&&i.focus({preventScroll:true})},400)}
+async function toggleNtf(){if(ntfOn()&&("Notification" in window)&&Notification.permission==="default"){try{await Notification.requestPermission()}catch(e){}updNtfBtn();
+    return toast(Notification.permission==="granted"?"เปิดแจ้งเตือนแล้ว จะเด้งเตือนแม้สลับไปแท็บอื่น":"แจ้งเตือนในหน้าเว็บและเสียงยังเปิดอยู่ (เบราว์เซอร์ไม่อนุญาตแจ้งเตือนนอกหน้าเว็บ)",4000)}
+  lsSet(NTF_KEY,ntfOn()?"off":null);updNtfBtn();toast(ntfOn()?"เปิดเสียงและแจ้งเตือนแชทแล้ว 🔔":"ปิดเสียงและแจ้งเตือนแชทแล้ว 🔕")}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.titleUnread){S.titleUnread=0;renderHeader()}});
 function updFab(){const b=$("#fabBadge");if(!b)return;b.textContent=S.unread>99?"99+":S.unread;b.classList.toggle("hide",!S.unread)}
 function onlineList(){const m=new Map();for(const p of S.peers){if(p.kind!=="viewer")continue;const uid=p.by||(p.presence&&p.presence.uid)||p.peer;
     const prev=m.get(uid);m.set(uid,{uid,me:p.isMe||(prev&&prev.me),typing:!!(p.presence&&p.presence.typing&&Date.now()-num(p.presence.typingAt)<6000)||(prev&&prev.typing),pres:p.presence||{}})}
@@ -1276,6 +1357,11 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
    case"buy":openBuy(d.item);break;
    case"scvote":scVote(d.id);break;
    case"scunvote":scUnvote();break;
+   case"scboost":openScBoost(d.id);break;
+   case"scclose":openScAnnounce(true);break;
+   case"scann":openScAnnounce(false);break;
+   case"scpreview":{const w=scWinData();if(w.winners.length)openWinPopup();else{const T=schoolTally();openModal(winPopHTML({winners:T.winners.map(s=>scSnap(s,T)),top:T.ranked.slice(0,3).map(s=>scSnap(s,T)),key:T.key},curAnn()||{},true)+'<div class="row" style="justify-content:center"><button class="btn" onclick="closeModal()">ปิด</button></div>')}break}
+   case"sccsv":{const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';copyText(["เวลา,ชื่อ,username,โรงเรียน,เพชร,รอบ"].concat(scHistRows().map(x=>{const p=prof(x.uid),sc=S.scList.find(y=>y.id===x.sid);return [new Date(x.at).toLocaleString("th-TH"),p.nick,p.username,sc?sc.n:x.name,x.pts,x.cur?"รอบนี้":"รอบก่อน"].map(q).join(",")})).join("\n"));break}
    case"scd":S.scDistrict=d.d;$$("#scD .dchip").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.d===d.d)));$("#scList").scrollTop=0;scListRender();break;
    case"bigscreen":openBig();break;
    case"closebig":closeBig();break;
@@ -1284,7 +1370,10 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
    case"scimport":openSchoolImport();break;
    case"scseed":seedSchools(false);break;
    case"scdel":{const sc=S.scList.find(x=>x.id===d.id);if(await confirmBox("ลบโรงเรียน",`ลบ <b>${esc(sc.n)}</b>? เสียงโหวตของโรงเรียนนี้จะไม่นับ`,"ลบ",true))saveSchools(S.scList.filter(x=>x.id!==d.id),"ลบโรงเรียน "+sc.n);break}
-   case"screset":if(await confirmBox("ล้างผลโหวตโรงเรียน","เริ่มนับคะแนนใหม่ทั้งหมด ทุกคนโหวตใหม่ได้อีกครั้ง?","ล้างผลโหวต",true)){const dd={...clone(S.scConf),resetAt:Date.now()};await enqueue("schoolvote/config",async()=>{if(await safeSet("schoolvote/config",dd)){S.scConf=dd;_ST=null;logAdmin("school","ล้างผลโหวตโรงเรียน");toast("ล้างผลแล้ว");dirty("view")}})}break;
+   case"screset":if(await confirmBox("ล้างผล / เริ่มรอบใหม่",`เริ่มนับคะแนนรอบใหม่ ทุกคนโหวตใหม่ได้อีกครั้ง<br><span class="small muted">ผลรอบนี้เก็บไว้ในประวัติผู้ชนะ · เพชรที่ใช้ไปแล้วไม่คืน${num(S.scConf.endAt)&&num(S.scConf.endAt)<=Date.now()?" · ล้างเวลาเริ่ม/ปิดเดิมด้วย (ตั้งใหม่ได้)":""}</span>`,"เริ่มรอบใหม่",true)){const now=Date.now(),T=schoolTally();
+     if(scStatus()==="end"&&T.winners.length&&!(S.scRounds||[]).some(r=>num(r.round)===num(S.scConf.resetAt)))await scSaveRound(scRoundEntry(T,now));
+     const dd={...clone(S.scConf),resetAt:now,announce:null};if(dd.endAt&&dd.endAt<=now){dd.endAt=0;dd.startAt=0}
+     await enqueue("schoolvote/config",async()=>{if(await safeSet("schoolvote/config",dd)){S.scConf={...SC_DEFAULT,...dd};invalidate();logAdmin("school","เริ่มโหวตโรงเรียนรอบใหม่");toast("เริ่มรอบใหม่แล้ว");dirty("view")}})}break;
    case"copy":copyText(d.text);break;
    case"logout":ssSet("vt_pin_"+S.uid,null);claude.auth.logout();location.hash="";location.reload();break;
    case"profile":openProfile();break;
@@ -1318,6 +1407,7 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
    case"zoom":openModal(`<img src="${esc(d.src)}" alt="สลิป" style="border-radius:12px;width:100%"><button class="btn" onclick="closeModal()">ปิด</button>`);break;
    case"reply":{const m=allMsgs().find(x=>x.id===d.mid&&x.uid===d.muid);if(m)setReply(m);break}
    case"delmsg":e.stopPropagation();delMsg(d.muid,d.mid);break;
+   case"ntf":toggleNtf();break;
    case"clearchat":if(await confirmBox("ล้างแชท","ลบข้อความแชททั้งหมดของทุกคน?","ล้างทั้งหมด",true)){for(const uid of Object.keys(S.chats)){await enqueue("chat/"+uid,()=>safeSet("chat/"+uid,{msgs:[]}))}logAdmin("chat","ล้างแชททั้งหมด");toast("ล้างแชทแล้ว")}break;
   }});
 
@@ -1327,62 +1417,92 @@ const DISTRICTS=["เมืองจันทบุรี","ขลุง","ท�
 const DCOL={"เมืองจันทบุรี":"#ff4f8b","ขลุง":"#14b394","ท่าใหม่":"#3b8cff","โป่งน้ำร้อน":"#f59e0b","มะขาม":"#ca8a04","แหลมสิงห์":"#ec4899","สอยดาว":"#9a5cf6","แก่งหางแมว":"#0891b2","นายายอาม":"#ff6f4f","เขาคิชฌกูฏ":"#65a30d"};
 const RANKC=["#f5b301","#94a3b8","#cd7f32","#ff4f8b","#3b8cff","#14b394","#9a5cf6","#ff6f4f","#0891b2","#65a30d"];
 const SC_TYPES=["ประถม","มัธยม","เอกชน","อาชีวะ","อื่นๆ"];
-const SC_DEFAULT={title:"โหวตโรงเรียนในดวงใจ จังหวัดจันทบุรี",desc:"เลือกโรงเรียนของคุณแล้วกดโหวต คนละ 1 เสียง ผลอัปเดตสด",open:true,startAt:0,endAt:0,allowChange:false,showLive:true,resetAt:0};
-S.scList=[];S.scConf={...SC_DEFAULT};S.scDistrict="all";S.scQ="";S.bigOpen=false;
+const SC_DEFAULT={title:"โหวตโรงเรียนในดวงใจ จังหวัดจันทบุรี",desc:"เลือกโรงเรียนของคุณแล้วกดโหวต คนละ 1 เสียง ใช้เพชรเพิ่มคะแนนได้ ผลอัปเดตสด",open:true,startAt:0,endAt:0,allowChange:false,showLive:true,resetAt:0,allowBoost:true,boostCap:0,winnerBy:"total",announce:null};
+S.scList=[];S.scConf={...SC_DEFAULT};S.scDistrict="all";S.scQ="";S.bigOpen=false;S.scRounds=[];S.scHistAll=false;
 const dcol=d=>DCOL[d]||"#7d6886";
 let _ST=null;
 function scStatus(now=Date.now()){const c=S.scConf;if(c.open===false)return"closed";if(c.startAt&&now<c.startAt)return"up";if(c.endAt&&now>=c.endAt)return"end";return"live"}
-function schoolTally(){if(_ST)return _ST;const c=S.scConf,ids=new Map(S.scList.map(s=>[s.id,s])),cnt={},byD={};let total=0;
+function canScBoost(){return scStatus()==="live"&&S.scConf.allowBoost!==false}
+function schoolTally(){if(_ST)return _ST;const c=S.scConf,ids=new Map(S.scList.map(s=>[s.id,s])),cnt={},bp={},sc={},byD={};let total=0,boost=0;
   for(const [uid,b] of Object.entries(S.ballots)){const v=b.school;if(!v||!ids.has(v.id))continue;const at=num(v.at);
     if(c.resetAt&&at<c.resetAt)continue;if(c.startAt&&at<c.startAt)continue;if(c.endAt&&at>c.endAt+5000)continue;
-    cnt[v.id]=(cnt[v.id]||0)+1;total++;const d=ids.get(v.id).d;byD[d]=(byD[d]||0)+1}
-  const ranked=S.scList.filter(s=>cnt[s.id]).sort((a,b)=>cnt[b.id]-cnt[a.id]||a.n.localeCompare(b.n,"th"));
-  _ST={cnt,total,ranked,byD};return _ST}
+    cnt[v.id]=(cnt[v.id]||0)+1;total++}
+  for(const x of ledger().scb){if(!x.cur||!ids.has(x.sid))continue;bp[x.sid]=(bp[x.sid]||0)+x.pts;boost+=x.pts}
+  const key=c.winnerBy==="votes"?"votes":"score";
+  for(const s of S.scList){const v=cnt[s.id]||0,p=bp[s.id]||0;if(v||p){sc[s.id]={votes:v,boost:p,score:v+p};byD[s.d]=(byD[s.d]||0)+v+p}}
+  const val=id=>sc[id]?sc[id][key]:0;
+  const ranked=S.scList.filter(s=>sc[s.id]).sort((a,b)=>val(b.id)-val(a.id)||sc[b.id].score-sc[a.id].score||a.n.localeCompare(b.n,"th"));
+  let winners=[];if(ranked.length&&val(ranked[0].id)>0){const top=val(ranked[0].id);winners=ranked.filter(s=>val(s.id)===top)}
+  _ST={cnt,bp,sc,total,boost,score:total+boost,ranked,byD,key,val,winners};return _ST}
+function scSnap(s,T){const r=T.sc[s.id]||{votes:0,boost:0,score:0};return{id:s.id,n:s.n,d:s.d,t:s.t||"",votes:r.votes,boost:r.boost,score:r.score}}
+function curAnn(){const a=S.scConf.announce;return a&&num(a.round)===num(S.scConf.resetAt)?a:null}
+function scWinData(){const T=schoolTally(),a=curAnn(),snap=a&&Array.isArray(a.winners)&&a.winners.length?a:null;
+  return{ann:a,winners:snap?snap.winners:T.winners.map(s=>scSnap(s,T)),top:snap&&Array.isArray(snap.top)?snap.top:T.ranked.slice(0,3).map(s=>scSnap(s,T)),key:snap?(snap.key||"score"):T.key}}
 function mySchool(){const b=S.ballots[S.uid],v=b&&b.school;if(!v)return null;if(S.scConf.resetAt&&num(v.at)<S.scConf.resetAt)return null;return S.scList.find(s=>s.id===v.id)?v:null}
 function scSubscribe(){
-  sub(S.db.doc("schoolvote/list"),"sclist",s=>{S.scList=s.exists&&Array.isArray(s.data().schools)?s.data().schools:[];_ST=null;dirty("view");renderBig();if(!s.exists&&!s.metadata.fromCache&&S.isOwner)seedSchools(false)});
-  sub(S.db.doc("schoolvote/config"),"scconf",s=>{S.scConf={...SC_DEFAULT,...(s.exists?s.data():{})};_ST=null;dirty("view");renderBig()});
+  sub(S.db.doc("schoolvote/list"),"sclist",s=>{S.scList=s.exists&&Array.isArray(s.data().schools)?s.data().schools:[];invalidate();dirty("view");renderBig();if(!s.exists&&!s.metadata.fromCache&&S.isOwner)seedSchools(false)});
+  sub(S.db.doc("schoolvote/config"),"scconf",s=>{S.scConf={...SC_DEFAULT,...(s.exists?s.data():{})};invalidate();dirty("view");renderBig()});
+  sub(S.db.doc("schoolvote/rounds"),"scrounds",s=>{S.scRounds=s.exists&&Array.isArray(s.data().list)?s.data().list:[];dirty("view")});
 }
-function lbHTML(n=10,big=false){const T=schoolTally(),top=T.ranked.slice(0,n),max=top.length?T.cnt[top[0].id]:1;
+function scScoreTxt(r){return `🗳️ ${fmtN(r.votes)} เสียง${r.boost?` · 💎 ${fmtN(r.boost)}`:""}`}
+function lbHTML(n=10,big=false){const T=schoolTally(),top=T.ranked.slice(0,n),base=T.key==="votes"?T.total:T.score,max=top.length?Math.max(1,T.val(top[0].id)):1,bo=!big&&canScBoost();
   if(!top.length)return `<div class="${big?"":"muted"}" style="padding:1rem 0;text-align:center">ยังไม่มีคะแนนโหวต มาเป็นคนแรกกัน!</div>`;
-  return `<div class="lb">${top.map((s,i)=>{const c=RANKC[i]||dcol(s.d),v=T.cnt[s.id],pct=T.total?Math.round(v/T.total*1000)/10:0,k="sc"+(big?"B":"")+":"+s.id;
+  return `<div class="lb">${top.map((s,i)=>{const c=RANKC[i]||dcol(s.d),r=T.sc[s.id],v=T.val(s.id),pct=base?Math.round(v/base*1000)/10:0,k="sc"+(big?"B":"")+":"+s.id;
     return `<div class="lbrow ${i<3?"top":""} r${i+1}" style="--c:${c}"><div class="fill" data-k="${k}" data-w="${(v/max*100).toFixed(1)}" style="width:${S.prevW[k]||0}%"></div>
-      <div class="rk">${i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</div><div class="nm">${esc(s.n)}<small><span style="color:${dcol(s.d)}">●</span> อ.${esc(s.d)} · ${esc(s.t||"")}</small></div>
-      <div class="vt"><b>${fmtN(v)}</b><span class="small ${big?"muted":"muted"}">${pct}%</span></div></div>`}).join("")}</div>`}
+      <div class="rk">${i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</div><div class="nm">${esc(s.n)}<small><span style="color:${dcol(s.d)}">●</span> อ.${esc(s.d)} · ${esc(s.t||"")}</small><small class="brk">${scScoreTxt(r)}</small></div>
+      <div class="vt"><b>${fmtN(v)}</b><span class="small muted">${pct}%</span>${bo?`<button class="btn sm boost" data-act="scboost" data-id="${s.id}" aria-label="ใช้เพชรโหวต ${esc(s.n)}">💎 เพิ่ม</button>`:""}</div></div>`}).join("")}</div>`}
 function animateFill(){requestAnimationFrame(()=>requestAnimationFrame(()=>{$$(".fill[data-w]").forEach(el=>{el.style.width=el.dataset.w+"%";S.prevW[el.dataset.k]=el.dataset.w})}))}
-function viewSchoolStatic(v){const c=S.scConf;
+function scWinCard(big){const w=scWinData();if(!w.winners.length)return"";const a=w.ann||{},img=a.img&&a.img.url,first=w.winners[0];
+  return `<section class="wincard ${big?"big":""}">${img?`<img class="wimg" src="${esc(img)}" alt="">`:""}<div class="wc-in"><div class="wc-k">${esc(a.title||"ประกาศผลโหวต")}</div>
+    <div class="wc-row"><span class="tro" aria-hidden="true">🏆</span><div><h2>${w.winners.map(x=>"โรงเรียน"+esc(x.n)).join(" · ")}</h2>
+    <div class="small">${w.winners.length>1?"คะแนนเท่ากัน · ":""}อ.${esc(first.d)} · <b>${fmtN(w.key==="votes"?first.votes:first.score)}</b> ${w.key==="votes"?"เสียง":"คะแนน"} (${scScoreTxt(first)})</div></div></div>
+    ${a.msg?`<p class="wc-msg">${esc(a.msg)}</p>`:""}</div></section>`}
+function scFeedHTML(n=12){const L=ledger().scb.filter(x=>x.cur).slice(-n).reverse();
+  if(!L.length)return '<div class="muted small">ยังไม่มีใครใช้เพชรโหวตในรอบนี้</div>';
+  return `<div class="feed">${L.map(x=>{const p=prof(x.uid),s=S.scList.find(y=>y.id===x.sid);return `<div class="frow"><span class="av">${esc(p.av||"🙂")}</span><span class="t"><b>${nickHTML(x.uid)}</b> ใช้ <b class="num">💎 ${fmtN(x.pts)}</b> โหวตให้ ${esc(s?s.n:x.name)}</span><span class="small muted">${fmtClock(x.at)}</span></div>`}).join("")}</div>`}
+function scRoundsHTML(){const R=(S.scRounds||[]).slice().sort((a,b)=>num(b.at)-num(a.at));if(!R.length)return"";
+  return `<details class="card"><summary style="cursor:pointer;font-family:var(--display)">🏆 ผู้ชนะรอบที่ผ่านมา (${R.length})</summary><div class="hist" style="margin-top:.6rem">${R.map(r=>`<div class="hrow"><span class="small muted">${fmtDT(r.at)}</span><span style="flex:1;min-width:160px"><b>${(r.winners||[]).map(x=>esc(x.n)).join(" · ")||"-"}</b><span class="small muted"> · ${esc(r.title||"")}</span></span><span class="small num">${(r.winners||[])[0]?fmtN(r.winners[0].score)+" คะแนน":""}</span></div>`).join("")}</div></details>`}
+function viewSchoolStatic(v){
   v.innerHTML=`<div class="hero"><div style="flex:1;min-width:240px"><h1 id="scTitle"></h1><p class="muted" style="margin:.2rem 0 0" id="scDesc"></p></div>
-    <div class="stats"><span class="stat"><b class="num" id="scTotal">0</b>เสียงโหวต</span><span class="stat"><b class="num">${fmtN(S.scList.length)}</b>โรงเรียน</span><span class="stat cd" id="scCd"></span></div></div>
+    <div class="stats"><span class="stat"><b class="num" id="scTotal">0</b>เสียงโหวต</span><span class="stat"><b class="num" id="scBoostT">0</b>เพชรที่ใช้</span><span class="stat"><b class="num">${fmtN(S.scList.length)}</b>โรงเรียน</span><span class="stat cd" id="scCd"></span></div></div>
    <div class="stack" style="padding-bottom:1rem">
+    <div id="scWin"></div>
     <section class="card stack"><div class="row"><h2 style="font-size:1.3rem">อันดับ 1-10 สด</h2><span class="chip live">อัปเดตอัตโนมัติ</span><div class="spacer"></div><button class="btn pri" data-act="bigscreen">เปิดจอสรุปผลแบบเต็มจอ</button></div><div id="scLB"></div></section>
     <div id="scMine"></div>
     <section class="card stack"><h2 style="font-size:1.3rem">เลือกโรงเรียนของคุณ</h2>
+     <div class="small muted" id="scRule"></div>
      <label for="scQ">ค้นหาชื่อโรงเรียน<input type="text" id="scQ" placeholder="พิมพ์บางส่วนของชื่อ เช่น เบญจม, วัดพลับ" autocomplete="off"></label>
      <div class="dchips" id="scD"></div>
      <div class="sclist" id="scList"></div>
-     <div class="small muted">ไม่เจอโรงเรียนของคุณ? แจ้งแอดมินในแชทด้านล่างเพื่อเพิ่มรายชื่อ</div></section></div>`;
+     <div class="small muted">ไม่เจอโรงเรียนของคุณ? แจ้งแอดมินในแชทด้านล่างเพื่อเพิ่มรายชื่อ</div></section>
+    <section class="card stack" id="scFeedCard"><div class="row"><h2 style="font-size:1.3rem">💎 ใช้เพชรโหวตล่าสุด</h2></div><div id="scFeed"></div></section>
+    <div id="scRounds"></div></div>`;
   const q=$("#scQ");q.value=S.scQ;q.oninput=()=>{S.scQ=q.value;scListRender()}}
-function viewSchoolDyn(){if(!$("#scLB"))return;const c=S.scConf,T=schoolTally(),st=scStatus();
-  $("#scTitle").textContent=c.title||SC_DEFAULT.title;$("#scDesc").textContent=c.desc||"";$("#scTotal").textContent=fmtN(T.total);
+function viewSchoolDyn(){if(!$("#scLB"))return;const c=S.scConf,T=schoolTally(),st=scStatus(),hide=c.showLive===false&&st!=="end"&&!S.isOwner;
+  $("#scTitle").textContent=c.title||SC_DEFAULT.title;$("#scDesc").textContent=c.desc||"";$("#scTotal").textContent=fmtN(T.total);$("#scBoostT").textContent=hide?"-":fmtN(T.boost);
   const cd=$("#scCd");cd.dataset.cd="";cd.dataset.s=num(c.startAt);cd.dataset.e=num(c.endAt);if(c.open===false){delete cd.dataset.cd;cd.textContent="ปิดโหวตอยู่"}
-  $("#scLB").innerHTML=(c.showLive===false&&st!=="end"&&!S.isOwner)?'<div class="notice">ผลโหวตจะประกาศเมื่อปิดโหวต</div>':lbHTML(10);
-  const m=mySchool(),ms=m&&S.scList.find(s=>s.id===m.id);
-  $("#scMine").innerHTML=ms?`<div class="myschool" style="--c:${dcol(ms.d)}"><span style="font-size:1.8rem">💖</span><div style="flex:1;min-width:200px"><div class="small muted">คุณโหวตให้</div><b style="font-family:var(--display);font-size:1.15rem">${esc(ms.n)}</b><div class="small muted">อ.${esc(ms.d)} · โหวตเมื่อ ${fmtDT(m.at)} · ตอนนี้ได้ ${fmtN(T.cnt[ms.id]||0)} เสียง${T.ranked.findIndex(x=>x.id===ms.id)>=0?" · อันดับ "+(T.ranked.findIndex(x=>x.id===ms.id)+1):""}</div></div>${S.scConf.allowChange&&st==="live"?'<button class="btn" data-act="scunvote">เปลี่ยนโรงเรียน</button>':'<span class="chip">1 คน 1 เสียง</span>'}</div>`:
+  $("#scWin").innerHTML=st==="end"?scWinCard(false):"";
+  $("#scLB").innerHTML=hide?'<div class="notice">ผลโหวตจะประกาศเมื่อปิดโหวต</div>':lbHTML(10);
+  $("#scRule").textContent=c.allowBoost!==false?`โหวตฟรีคนละ 1 เสียง และกด 💎 เพื่อใช้เพชรเพิ่มคะแนนให้โรงเรียนไหนก็ได้ (1 เพชร = 1 คะแนน${num(c.boostCap)>0?` · สูงสุด ${fmtN(c.boostCap)} เพชรต่อคนต่อรอบ`:""})`:"โหวตฟรีคนละ 1 เสียง";
+  const m=mySchool(),ms=m&&S.scList.find(s=>s.id===m.id),myPts=ledger().scPer[S.uid]||0;
+  $("#scMine").innerHTML=ms?`<div class="myschool" style="--c:${dcol(ms.d)}"><span style="font-size:1.8rem">💖</span><div style="flex:1;min-width:200px"><div class="small muted">คุณโหวตให้</div><b style="font-family:var(--display);font-size:1.15rem">${esc(ms.n)}</b><div class="small muted">อ.${esc(ms.d)} · โหวตเมื่อ ${fmtDT(m.at)} · ตอนนี้ได้ ${fmtN(T.sc[ms.id]?T.sc[ms.id].score:0)} คะแนน${T.ranked.findIndex(x=>x.id===ms.id)>=0?" · อันดับ "+(T.ranked.findIndex(x=>x.id===ms.id)+1):""}${myPts?` · คุณใช้เพชรรอบนี้ ${fmtN(myPts)}`:""}</div></div>${canScBoost()?`<button class="btn boost" data-act="scboost" data-id="${ms.id}">💎 ใช้เพชรเพิ่มคะแนน</button>`:""}${S.scConf.allowChange&&st==="live"?'<button class="btn" data-act="scunvote">เปลี่ยนโรงเรียน</button>':'<span class="chip">1 คน 1 เสียง</span>'}</div>`:
     st==="live"?"":`<div class="notice">${st==="up"?"ยังไม่เปิดโหวต":st==="end"?"ปิดโหวตแล้ว ขอบคุณทุกเสียง":"แอดมินปิดการโหวตชั่วคราว"}</div>`;
   const counts={};S.scList.forEach(s=>counts[s.d]=(counts[s.d]||0)+1);
   $("#scD").innerHTML=`<button class="dchip" style="--c:var(--ink)" aria-pressed="${S.scDistrict==="all"}" data-act="scd" data-d="all">ทุกอำเภอ <span class="small">${S.scList.length}</span></button>`+
     DISTRICTS.concat(Object.keys(counts).filter(d=>!DISTRICTS.includes(d))).filter(d=>counts[d]).map(d=>`<button class="dchip" style="--c:${dcol(d)}" aria-pressed="${S.scDistrict===d}" data-act="scd" data-d="${esc(d)}"><i></i>${esc(d)} <span class="small">${counts[d]}</span></button>`).join("");
+  $("#scFeedCard").classList.toggle("hide",hide||c.allowBoost===false&&!ledger().scb.some(x=>x.cur));$("#scFeed").innerHTML=hide?"":scFeedHTML();
+  $("#scRounds").innerHTML=scRoundsHTML();
   scListRender();animateFill();cdUpdate()}
-function scListRender(){const box=$("#scList");if(!box)return;const T=schoolTally(),m=mySchool(),st=scStatus(),q=S.scQ.trim().replace(/^โรงเรียน/,"").toLowerCase();
+function scListRender(){const box=$("#scList");if(!box)return;const T=schoolTally(),m=mySchool(),st=scStatus(),bo=canScBoost(),hide=S.scConf.showLive===false&&st!=="end"&&!S.isOwner,q=S.scQ.trim().replace(/^โรงเรียน/,"").toLowerCase();
   let list=S.scList.filter(s=>(S.scDistrict==="all"||s.d===S.scDistrict)&&(!q||s.n.toLowerCase().includes(q)));
   if(!S.loaded.sclist){box.innerHTML='<div class="empty"><div class="spin"></div>กำลังโหลดรายชื่อ…</div>';return}
   if(!list.length){box.innerHTML=`<div class="muted" style="padding:1rem">ไม่พบโรงเรียน${q?` ที่มีคำว่า “${esc(S.scQ)}”`:""}</div>`;return}
   const groups={};list.forEach(s=>(groups[s.d]=groups[s.d]||[]).push(s));
   const order=DISTRICTS.concat(Object.keys(groups).filter(d=>!DISTRICTS.includes(d)));
   const sTop=box.scrollTop;
-  box.innerHTML=order.filter(d=>groups[d]).map(d=>`<div class="schead" style="--c:${dcol(d)}"><i></i>อำเภอ${esc(d)} <span class="small muted">${groups[d].length} โรงเรียน · ${fmtN(T.byD[d]||0)} เสียง</span></div>`+
-    groups[d].sort((a,b)=>a.n.localeCompare(b.n,"th")).map(s=>{const mine=m&&m.id===s.id;return `<div class="scrow ${mine?"mine":""}" style="--c:${dcol(s.d)}"><div class="nm">${esc(s.n)}<small>${esc(s.t||"")}</small></div><span class="cnt">${fmtN(T.cnt[s.id]||0)} เสียง</span>
-      ${mine?'<button class="btn sm done" disabled>✓ โหวตแล้ว</button>':(m||st!=="live")?'':`<button class="btn sm pri" data-act="scvote" data-id="${s.id}">โหวต</button>`}</div>`}).join("")).join("");
+  box.innerHTML=order.filter(d=>groups[d]).map(d=>`<div class="schead" style="--c:${dcol(d)}"><i></i>อำเภอ${esc(d)} <span class="small muted">${groups[d].length} โรงเรียน${hide?"":" · "+fmtN(T.byD[d]||0)+" คะแนน"}</span></div>`+
+    groups[d].sort((a,b)=>a.n.localeCompare(b.n,"th")).map(s=>{const mine=m&&m.id===s.id,r=T.sc[s.id];return `<div class="scrow ${mine?"mine":""}" style="--c:${dcol(s.d)}"><div class="nm">${esc(s.n)}<small>${esc(s.t||"")}</small></div><span class="cnt">${hide?"":fmtN(r?r.score:0)+" คะแนน"}</span>
+      <div class="scbtns">${mine?'<button class="btn sm done" disabled>✓ โหวตแล้ว</button>':(m||st!=="live")?'':`<button class="btn sm pri" data-act="scvote" data-id="${s.id}">โหวต</button>`}${bo?`<button class="btn sm boost" data-act="scboost" data-id="${s.id}" aria-label="ใช้เพชรโหวต ${esc(s.n)}">💎</button>`:""}</div></div>`}).join("")).join("");
   box.scrollTop=sTop}
 async function scVote(id){const s=S.scList.find(x=>x.id===id);if(!s)return;if(scStatus()!=="live")return toast("ตอนนี้ไม่ได้เปิดโหวต");if(mySchool())return toast("คุณโหวตไปแล้ว คนละ 1 เสียง");
   if(!await confirmBox("ยืนยันโหวตโรงเรียน",`โหวตให้ <b>${esc(s.n)}</b> อ.${esc(s.d)} ใช่ไหม?<br><span class="small muted">${S.scConf.allowChange?"เปลี่ยนได้ภายหลังจนกว่าจะปิดโหวต":"คนละ 1 เสียง ยืนยันแล้วเปลี่ยนไม่ได้"}</span>`,"ยืนยันโหวต"))return;
@@ -1390,43 +1510,125 @@ async function scVote(id){const s=S.scList.find(x=>x.id===id);if(!s)return;if(sc
   await enqueue(path,async()=>{const b=clone(S.ballots[S.uid]||{votes:{},boosts:[]});delete b.id;if(b.school&&!(S.scConf.resetAt&&num(b.school.at)<S.scConf.resetAt)&&S.scList.some(x=>x.id===b.school.id))return;
     b.school={id,at:Date.now()};S.ballots[S.uid]={id:S.uid,...b};invalidate();renderView();renderBig();
     if(await safeSet(path,b))toast("โหวตให้ "+s.n+" แล้ว 🎉")})}
-async function scUnvote(){if(!S.scConf.allowChange)return;if(!await confirmBox("เปลี่ยนโรงเรียน","ยกเลิกโหวตเดิมเพื่อเลือกโรงเรียนใหม่?","ยกเลิกโหวตเดิม"))return;const path="ballots/"+S.uid;
+async function scUnvote(){if(!S.scConf.allowChange)return;if(!await confirmBox("เปลี่ยนโรงเรียน","ยกเลิกโหวตเดิมเพื่อเลือกโรงเรียนใหม่?<br><span class=\"small muted\">เพชรที่ใช้ไปแล้วยังนับให้โรงเรียนเดิม</span>","ยกเลิกโหวตเดิม"))return;const path="ballots/"+S.uid;
   await enqueue(path,async()=>{const b=clone(S.ballots[S.uid]||{});delete b.id;delete b.school;S.ballots[S.uid]={id:S.uid,...b};invalidate();renderView();renderBig();await safeSet(path,b)})}
+function openScBoost(id){const s=S.scList.find(x=>x.id===id);if(!s)return;if(scStatus()!=="live")return toast("ตอนนี้ไม่ได้เปิดโหวต");if(S.scConf.allowBoost===false)return toast("รอบนี้ปิดการใช้เพชรโหวต");
+  const bal=balance(S.uid),cap=num(S.scConf.boostCap),used=ledger().scPer[S.uid]||0,max=Math.max(0,cap>0?Math.min(bal,cap-used):bal),r=schoolTally().sc[id];
+  openModal(`<h3>💎 ใช้เพชรโหวตโรงเรียน</h3><div class="scrow mine" style="--c:${dcol(s.d)};grid-template-columns:1fr"><div class="nm">โรงเรียน${esc(s.n)}<small>อ.${esc(s.d)} · ตอนนี้ ${fmtN(r?r.score:0)} คะแนน</small></div></div>
+   <div class="row"><span>เพชรคงเหลือ</span><div class="spacer"></div><b class="bal num">💎 ${fmtN(bal)}</b></div>
+   ${cap>0?`<div class="small muted">รอบนี้ใช้ได้สูงสุด ${fmtN(cap)} เพชรต่อคน (ใช้ไปแล้ว ${fmtN(used)})</div>`:""}
+   ${max<=0?`<div class="notice">${cap>0&&used>=cap?"คุณใช้เพชรครบจำนวนที่กำหนดของรอบนี้แล้ว":"เพชรไม่พอ เติมเพชรก่อนแล้วกลับมาโหวตได้เลย"}</div><div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ปิด</button>${cap>0&&used>=cap?"":'<button class="btn pri" data-act="tab" data-tab="topup">ไปเติมเพชร</button>'}</div>`:
+   `<label for="sbPts">ใช้กี่เพชร (1 เพชร = +1 คะแนน)<input type="number" id="sbPts" min="1" max="${max}" value="${Math.min(10,max)}"></label>
+   <div class="row">${[1,5,10,50,100].filter(n=>n<=max).map(n=>`<button class="btn sm" data-q="${n}">${n}</button>`).join("")}<button class="btn sm" data-q="${max}">ทั้งหมด</button></div>
+   <div class="small muted">ชื่อของคุณจะแสดงในรายการ "ใช้เพชรโหวตล่าสุด" · ใช้แล้วคืนไม่ได้</div>
+   <div class="err" id="sbErr"></div>
+   <div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ยกเลิก</button><button class="btn pri" id="sbOk">ยืนยันใช้เพชร</button></div>`}`,
+  {onMount:b=>{$$("[data-q]",b).forEach(x=>x.onclick=()=>{$("#sbPts").value=x.dataset.q});const ok=$("#sbOk",b);if(!ok)return;
+    ok.onclick=async()=>{const pts=Math.floor(num($("#sbPts").value));if(pts<1||pts>max)return $("#sbErr").textContent=`ใส่ได้ 1 - ${fmtN(max)}`;if(!canScBoost())return $("#sbErr").textContent="ปิดโหวตแล้ว";
+      ok.disabled=true;const path="ballots/"+S.uid,bid=rid();
+      await enqueue(path,async()=>{const bb=clone(S.ballots[S.uid]||{votes:{},boosts:[]});delete bb.id;bb.scBoosts=Array.isArray(bb.scBoosts)?bb.scBoosts:[];
+        bb.scBoosts.push({id:bid,sid:id,name:s.n,pts,at:Date.now()});S.ballots[S.uid]={id:S.uid,...bb};invalidate();
+        if(await safeSet(path,bb)){closeModal();const okL=ledger().scb.some(x=>x.id===bid&&x.uid===S.uid);
+          toast(okL?`ใช้ ${fmtN(pts)} เพชรโหวตให้ ${s.n} แล้ว 💎`:"ใช้เพชรไม่สำเร็จ เพชรอาจไม่พอ ลองใหม่อีกครั้ง",3500);dirty("view");renderBig()}else ok.disabled=false})}}})}
+/* winner popup */
+function ledgerReady(){return ["ballots","approvals","orders","shop","deliveries","polls","sclist","scconf"].every(k=>S.loaded[k])}
+function winPopHTML(w,a,preview){const first=w.winners[0];const conf=Array.from({length:18},(_,i)=>`<i style="--x:${(i*37)%100}%;--d:${(i%6)*.25}s;--c:${RANKC[i%RANKC.length]}"></i>`).join("");
+  return `<div class="winpop"><div class="confetti" aria-hidden="true">${conf}</div>${a.img&&a.img.url?`<img class="wimg" src="${esc(a.img.url)}" alt="">`:""}
+    <div class="wp-k">${esc(a.title||"ประกาศผลโหวต")}</div>${preview?'<div class="small muted">(ตัวอย่าง · แสดงผู้นำตอนนี้)</div>':""}
+    <div class="tro" aria-hidden="true">🏆</div>
+    ${first?`<h2>${w.winners.map(x=>"โรงเรียน"+esc(x.n)).join("<br>")}</h2><div class="small muted">${w.winners.length>1?"คะแนนเท่ากัน · ":""}อ.${esc(first.d)} · <b>${fmtN(w.key==="votes"?first.votes:first.score)}</b> ${w.key==="votes"?"เสียง":"คะแนน"} (${scScoreTxt(first)})</div>`:'<h2>ยังไม่มีคะแนนโหวต</h2>'}
+    ${a.msg?`<p class="wc-msg">${esc(a.msg)}</p>`:""}
+    ${w.top.length>1?`<div class="wp-top">${w.top.slice(0,3).map((x,i)=>`<div><span>${["🥇","🥈","🥉"][i]}</span> ${esc(x.n)} <span class="muted small num">${fmtN(x.score)}</span></div>`).join("")}</div>`:""}</div>`}
+function openWinPopup(){const w=scWinData();if(!w.winners.length)return;const a=w.ann||{};
+  openModal(winPopHTML(w,a,false)+`<div class="row" style="justify-content:center"><button class="btn" onclick="closeModal()">ปิด</button><button class="btn pri" data-act="tab" data-tab="school">ดูผลทั้งหมด</button></div>`)}
+function scCheckWinPopup(){if(!S.loggedIn||!ledgerReady()||scStatus()!=="end"||S.bigOpen||$("#modalRoot").innerHTML)return;const w=scWinData();if(!w.winners.length||(w.ann&&w.ann.show===false))return;
+  const key="vt_scwin_"+num(S.scConf.resetAt)+"_"+(w.ann?num(w.ann.ver):num(S.scConf.endAt));if(lsGet(key))return;lsSet(key,"1");openWinPopup()}
 /* big screen */
 function openBig(){S.bigOpen=true;const el=document.createElement("div");el.className="bigscr";el.id="big";el.setAttribute("role","dialog");el.setAttribute("aria-label","จอสรุปผลโหวต");document.body.appendChild(el);renderBig();
   try{el.requestFullscreen&&el.requestFullscreen().catch(()=>{})}catch(e){}}
 function closeBig(){S.bigOpen=false;const el=$("#big");if(el)el.remove();try{document.fullscreenElement&&document.exitFullscreen()}catch(e){}}
 function renderBig(){if(!S.bigOpen)return;const el=$("#big");if(!el)return;const c=S.scConf,T=schoolTally();
-  const dl=DISTRICTS.map(d=>{const top=T.ranked.find(s=>s.d===d);return top?`<div style="--c:${dcol(d)}"><span class="muted small">อ.${esc(d)} · ${fmtN(T.byD[d]||0)} เสียง</span><br><b>${esc(top.n)}</b> <span class="muted">${fmtN(T.cnt[top.id])}</span></div>`:""}).join("");
-  el.innerHTML=`<div class="row" style="margin-bottom:1rem"><div style="flex:1;min-width:260px"><div class="muted">ผลโหวตสด · อัปเดตอัตโนมัติ</div><h1>${esc(c.title||SC_DEFAULT.title)}</h1></div>
-    <div class="stats"><span class="stat"><b class="num">${fmtN(T.total)}</b>เสียงโหวต</span><span class="stat"><b class="num">${fmtN(T.ranked.length)}</b>โรงเรียนที่มีคะแนน</span><span class="stat cd" data-cd data-s="${num(c.startAt)}" data-e="${num(c.endAt)}"></span></div>
+  const dl=DISTRICTS.map(d=>{const top=T.ranked.find(s=>s.d===d);return top?`<div style="--c:${dcol(d)}"><span class="muted small">อ.${esc(d)} · ${fmtN(T.byD[d]||0)} คะแนน</span><br><b>${esc(top.n)}</b> <span class="muted">${fmtN(T.val(top.id))}</span></div>`:""}).join("");
+  el.innerHTML=`<div class="row" style="margin-bottom:1rem"><div style="flex:1;min-width:260px"><div class="muted">${scStatus()==="end"?"ผลโหวตอย่างเป็นทางการ":"ผลโหวตสด · อัปเดตอัตโนมัติ"}</div><h1>${esc(c.title||SC_DEFAULT.title)}</h1></div>
+    <div class="stats"><span class="stat"><b class="num">${fmtN(T.total)}</b>เสียงโหวต</span><span class="stat"><b class="num">${fmtN(T.boost)}</b>เพชรที่ใช้</span><span class="stat"><b class="num">${fmtN(T.ranked.length)}</b>โรงเรียนที่มีคะแนน</span><span class="stat cd" data-cd data-s="${num(c.startAt)}" data-e="${num(c.endAt)}"></span></div>
     <button class="btn" data-act="closebig" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.25)">ปิดจอใหญ่ ✕</button></div>
+   ${scStatus()==="end"?scWinCard(true):""}
    ${lbHTML(10,true)}
    ${dl?`<h3 style="margin:1.4rem 0 .6rem">โรงเรียนที่นำในแต่ละอำเภอ</h3><div class="dlead">${dl}</div>`:""}`;
   animateFill();cdUpdate()}
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.bigOpen)closeBig()});
 /* admin: schools */
-function adminSchools(m){const openD=new Set($$("#admMain details[open]").map(x=>x.dataset.d));const c=S.scConf,T=schoolTally(),groups={};S.scList.forEach(s=>(groups[s.d]=groups[s.d]||[]).push(s));
+function scHistRows(){const L=ledger().scb.filter(x=>S.scHistAll||x.cur);return L.slice().sort((a,b)=>b.at-a.at)}
+function scHistTable(){const rows=scHistRows();if(!rows.length)return '<div class="muted small">ยังไม่มีการใช้เพชรโหวต</div>';
+  return `<div class="tblwrap"><table class="tbl"><thead><tr><th>เวลา</th><th>ผู้ใช้</th><th>โรงเรียน</th><th class="num">เพชร</th>${S.scHistAll?"<th>รอบ</th>":""}</tr></thead><tbody>${rows.slice(0,300).map(x=>{const p=prof(x.uid),s=S.scList.find(y=>y.id===x.sid);
+    return `<tr><td class="small num">${fmtDT(x.at)}</td><td class="small">${esc(p.av||"")} ${esc(p.nick)} <span class="muted">@${esc(p.username)}</span></td><td>${esc(s?s.n:x.name||"-")}</td><td class="num">💎 ${fmtN(x.pts)}</td>${S.scHistAll?`<td class="small">${x.cur?"รอบนี้":"รอบก่อน"}</td>`:""}</tr>`}).join("")}</tbody></table></div>${rows.length>300?'<div class="small muted">แสดง 300 รายการล่าสุด กดคัดลอก CSV เพื่อดูทั้งหมด</div>':""}`}
+function scTopBoosters(){const m={};ledger().scb.filter(x=>x.cur).forEach(x=>m[x.uid]=(m[x.uid]||0)+x.pts);return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,5)}
+function adminSchools(m){const openD=new Set($$("#admMain details[open]").map(x=>x.dataset.d));const c=S.scConf,T=schoolTally(),st=scStatus(),groups={};S.scList.forEach(s=>(groups[s.d]=groups[s.d]||[]).push(s));
+  const a=curAnn(),w=scWinData(),tb=scTopBoosters();
   m.innerHTML=`<div class="row"><h2>โหวตโรงเรียน</h2><div class="spacer"></div><button class="btn" data-act="tab" data-tab="school">ดูหน้าโหวต</button><button class="btn pri" data-act="scadd">+ เพิ่มโรงเรียน</button></div>
-   <div class="kpis"><div class="kpi"><span>โรงเรียนในระบบ</span><b>${fmtN(S.scList.length)}</b></div><div class="kpi"><span>เสียงโหวต</span><b>${fmtN(T.total)}</b></div><div class="kpi"><span>อันดับ 1</span><b style="font-size:1.05rem">${T.ranked[0]?esc(T.ranked[0].n):"-"}</b></div>
-    <div class="kpi"><span>สถานะ</span><b style="font-size:1.1rem">${{live:"เปิดโหวต",up:"ยังไม่เริ่ม",end:"ปิดแล้ว",closed:"ปิดชั่วคราว"}[scStatus()]}</b></div></div>
+   <div class="kpis"><div class="kpi"><span>โรงเรียนในระบบ</span><b>${fmtN(S.scList.length)}</b></div><div class="kpi"><span>เสียงโหวต</span><b>${fmtN(T.total)}</b></div><div class="kpi"><span>เพชรที่ใช้ (รอบนี้)</span><b>💎 ${fmtN(T.boost)}</b></div><div class="kpi"><span>อันดับ 1</span><b style="font-size:1.05rem">${T.ranked[0]?esc(T.ranked[0].n):"-"}</b></div>
+    <div class="kpi"><span>สถานะ</span><b style="font-size:1.1rem">${{live:"เปิดโหวต",up:"ยังไม่เริ่ม",end:"ปิดแล้ว",closed:"พักชั่วคราว"}[st]}</b></div></div>
+   <div class="card stack ann-card"><div class="row"><h3>🏆 ประกาศผู้ชนะ</h3><div class="spacer"></div>
+     ${st!=="end"?'<button class="btn pri" data-act="scclose">🏁 ปิดโหวตและประกาศผู้ชนะ</button>':""}<button class="btn" data-act="scann">✏️ แก้ไขข้อความ / รูปป็อปอัพ</button><button class="btn" data-act="scpreview">👀 ดูป็อปอัพ</button></div>
+    <div class="small muted">${st==="end"?(w.winners.length?`ผู้ชนะรอบนี้: <b>${w.winners.map(x=>esc(x.n)).join(" · ")}</b> · ${fmtN(w.winners[0].score)} คะแนน${a&&a.show===false?" · ปิดป็อปอัพอยู่":" · สมาชิกจะเห็นป็อปอัพคนละครั้ง"}`:"ปิดโหวตแล้ว แต่ยังไม่มีคะแนน"):"กดปุ่ม ปิดโหวตและประกาศผู้ชนะ เมื่อพร้อม ระบบจะปิดโหวตทันที แล้วเด้งป็อปอัพผู้ชนะให้ทุกคน (ตั้งเวลาปิดไว้ก็ได้ ระบบประกาศให้เองเมื่อถึงเวลา)"}</div>
+    ${a&&(a.title||a.msg||a.img)?`<div class="row" style="align-items:flex-start">${a.img&&a.img.url?`<img src="${esc(a.img.url)}" alt="" class="slip" style="width:90px;height:90px">`:""}<div style="flex:1;min-width:200px"><b>${esc(a.title||"")}</b><div class="small" style="white-space:pre-wrap">${esc(a.msg||"")}</div></div></div>`:""}</div>
    <form class="card stack" id="scConfForm"><h3>ตั้งค่าการโหวต</h3>
     <label for="scT">หัวข้อ<input type="text" id="scT" maxlength="80" value="${esc(c.title)}"></label>
     <label for="scDs">คำอธิบาย<input type="text" id="scDs" maxlength="160" value="${esc(c.desc)}"></label>
     <div class="grid2"><label for="scS">เริ่มโหวต (เว้นว่าง = ทันที)<input type="datetime-local" id="scS" value="${toLocalInput(c.startAt)}"></label><label for="scE">ปิดโหวต (เว้นว่าง = ไม่จำกัด)<input type="datetime-local" id="scE" value="${toLocalInput(c.endAt)}"></label></div>
-    <label class="check"><input type="checkbox" id="scOpen" ${c.open!==false?"checked":""}> เปิดให้โหวต</label>
+    <label class="check"><input type="checkbox" id="scOpen" ${c.open!==false?"checked":""}> เปิดให้โหวต (เอาเครื่องหมายออก = พักโหวตชั่วคราว ยังไม่ประกาศผล)</label>
     <label class="check"><input type="checkbox" id="scChg" ${c.allowChange?"checked":""}> ให้เปลี่ยนโรงเรียนได้ (ปิด = 1 คน 1 เสียง เปลี่ยนไม่ได้)</label>
     <label class="check"><input type="checkbox" id="scLive" ${c.showLive!==false?"checked":""}> แสดงผลสดให้ทุกคนเห็น</label>
-    <div class="row" style="justify-content:flex-end"><button type="button" class="btn danger" data-act="screset">ล้างผลโหวตทั้งหมด</button><button class="btn pri" type="submit">บันทึก</button></div></form>
+    <h4>เพชร</h4>
+    <div class="grid2"><label class="check"><input type="checkbox" id="scBoost" ${c.allowBoost!==false?"checked":""}> ให้ใช้เพชรเพิ่มคะแนนได้ (1 เพชร = 1 คะแนน)</label>
+     <label for="scCap">จำกัดเพชรต่อคนต่อรอบ (0 = ไม่จำกัด)<input type="number" id="scCap" min="0" value="${num(c.boostCap)}"></label></div>
+    <label for="scWinBy">ตัดสินผู้ชนะจาก<select id="scWinBy"><option value="total" ${c.winnerBy!=="votes"?"selected":""}>คะแนนรวม (เสียงโหวต + เพชร)</option><option value="votes" ${c.winnerBy==="votes"?"selected":""}>เสียงโหวตปกติเท่านั้น</option></select></label>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn danger" data-act="screset">ล้างผล / เริ่มรอบใหม่</button><button class="btn pri" type="submit">บันทึก</button></div></form>
+   <div class="card stack"><div class="row"><h3>💎 ประวัติการใช้เพชรโหวต</h3><div class="spacer"></div><label class="check small"><input type="checkbox" id="scHAll" ${S.scHistAll?"checked":""}> รวมรอบก่อนๆ</label><button class="btn sm" data-act="sccsv">คัดลอกเป็น CSV</button></div>
+    ${tb.length?`<div class="row small"><span class="muted">ใช้เพชรมากที่สุดรอบนี้:</span>${tb.map(([u,v],i)=>`<span class="tag t-boost">${i+1}. ${esc(prof(u).nick)} 💎 ${fmtN(v)}</span>`).join("")}</div>`:""}
+    ${scHistTable()}</div>
+   ${S.scRounds.length?scRoundsHTML():""}
    <div class="card stack"><div class="row"><h3>รายชื่อโรงเรียนแยกอำเภอ</h3><div class="spacer"></div><button class="btn sm" data-act="scseed">เติมรายชื่อเริ่มต้นที่ขาด</button><button class="btn sm" data-act="scimport">นำเข้าหลายรายการ</button></div>
-    ${DISTRICTS.concat(Object.keys(groups).filter(d=>!DISTRICTS.includes(d))).filter(d=>groups[d]).map(d=>`<details data-d="${esc(d)}" ${openD.has(d)?"open":""}><summary class="schead" style="--c:${dcol(d)};cursor:pointer"><i></i>อำเภอ${esc(d)} <span class="small muted">${groups[d].length} โรงเรียน · ${fmtN(T.byD[d]||0)} เสียง</span></summary>
-      <div class="stack" style="gap:.35rem;margin:.4rem 0 .8rem">${groups[d].sort((a,b)=>(T.cnt[b.id]||0)-(T.cnt[a.id]||0)||a.n.localeCompare(b.n,"th")).map(s=>`<div class="scrow" style="--c:${dcol(d)}"><div class="nm">${esc(s.n)}<small>${esc(s.t||"")}</small></div><span class="cnt">${fmtN(T.cnt[s.id]||0)} เสียง</span><div class="row"><button class="btn sm" data-act="scedit" data-id="${s.id}">แก้ไข</button><button class="btn sm danger" data-act="scdel" data-id="${s.id}">ลบ</button></div></div>`).join("")}</div></details>`).join("")||'<div class="muted">ยังไม่มีรายชื่อ</div>'}</div>`;
+    ${DISTRICTS.concat(Object.keys(groups).filter(d=>!DISTRICTS.includes(d))).filter(d=>groups[d]).map(d=>`<details data-d="${esc(d)}" ${openD.has(d)?"open":""}><summary class="schead" style="--c:${dcol(d)};cursor:pointer"><i></i>อำเภอ${esc(d)} <span class="small muted">${groups[d].length} โรงเรียน · ${fmtN(T.byD[d]||0)} คะแนน</span></summary>
+      <div class="stack" style="gap:.35rem;margin:.4rem 0 .8rem">${groups[d].sort((a,b)=>T.val(b.id)-T.val(a.id)||a.n.localeCompare(b.n,"th")).map(s=>{const r=T.sc[s.id];return `<div class="scrow" style="--c:${dcol(d)}"><div class="nm">${esc(s.n)}<small>${esc(s.t||"")}</small></div><span class="cnt">${r?scScoreTxt(r):"0 เสียง"}</span><div class="row"><button class="btn sm" data-act="scedit" data-id="${s.id}">แก้ไข</button><button class="btn sm danger" data-act="scdel" data-id="${s.id}">ลบ</button></div></div>`}).join("")}</div></details>`).join("")||'<div class="muted">ยังไม่มีรายชื่อ</div>'}</div>`;
+  $("#scHAll").onchange=e=>{S.scHistAll=e.target.checked;adminSchools(m)};
   $("#scConfForm").onsubmit=async e=>{e.preventDefault();const d={...clone(S.scConf),title:$("#scT").value.trim()||SC_DEFAULT.title,desc:$("#scDs").value.trim(),startAt:$("#scS").value?new Date($("#scS").value).getTime():0,endAt:$("#scE").value?new Date($("#scE").value).getTime():0,
-    open:$("#scOpen").checked,allowChange:$("#scChg").checked,showLive:$("#scLive").checked};
-    if(d.endAt&&d.endAt<=Date.now()&&!await confirmBox("เวลาปิดโหวตผ่านไปแล้ว",`คุณตั้งปิดโหวต ${fmtDT(d.endAt)} ซึ่งผ่านมาแล้ว ทุกคนจะโหวตไม่ได้ ตรวจเดือน/ปีอีกครั้ง<br>ยังต้องการบันทึกแบบนี้ไหม?`,"บันทึกต่อ",true))return;
+    open:$("#scOpen").checked,allowChange:$("#scChg").checked,showLive:$("#scLive").checked,allowBoost:$("#scBoost").checked,boostCap:Math.max(0,Math.floor(num($("#scCap").value))),winnerBy:$("#scWinBy").value};
+    if(d.endAt&&d.endAt<=Date.now()&&d.endAt!==num(S.scConf.endAt)&&!await confirmBox("เวลาปิดโหวตผ่านไปแล้ว",`คุณตั้งปิดโหวต ${fmtDT(d.endAt)} ซึ่งผ่านมาแล้ว ทุกคนจะโหวตไม่ได้ ตรวจเดือน/ปีอีกครั้ง<br>ยังต้องการบันทึกแบบนี้ไหม?`,"บันทึกต่อ",true))return;
     if(d.startAt&&d.endAt&&d.endAt<=d.startAt){toast("เวลาปิดต้องอยู่หลังเวลาเริ่ม");return}
-    await enqueue("schoolvote/config",async()=>{if(await safeSet("schoolvote/config",d)){S.scConf=d;_ST=null;logAdmin("school","แก้ไขการตั้งค่าโหวตโรงเรียน");toast("บันทึกแล้ว")}})}}
-async function saveSchools(list,msg){await enqueue("schoolvote/list",async()=>{if(await safeSet("schoolvote/list",{schools:list})){S.scList=list;_ST=null;if(msg){logAdmin("school",msg);toast(msg)}dirty("view")}})}
+    if(S.scConf.allowBoost!==false&&!d.allowBoost&&ledger().scb.some(x=>x.cur)&&!await confirmBox("ปิดการใช้เพชร","เพชรที่สมาชิกใช้โหวตในรอบนี้จะไม่นับคะแนน และคืนเข้าบัญชีของแต่ละคน ต้องการปิดไหม?","ปิดการใช้เพชร",true))return;
+    await enqueue("schoolvote/config",async()=>{if(await safeSet("schoolvote/config",d)){S.scConf=d;invalidate();logAdmin("school","แก้ไขการตั้งค่าโหวตโรงเรียน");toast("บันทึกแล้ว")}})}}
+function scRoundEntry(T,at){return{at,round:num(S.scConf.resetAt),title:S.scConf.title||SC_DEFAULT.title,key:T.key,winners:T.winners.map(s=>scSnap(s,T)),top:T.ranked.slice(0,3).map(s=>scSnap(s,T)),votes:T.total,boost:T.boost}}
+async function scSaveRound(entry){if(!entry.winners.length)return;await enqueue("schoolvote/rounds",async()=>{const list=(S.scRounds||[]).filter(r=>num(r.round)!==entry.round).concat(entry).slice(-60);if(await safeSet("schoolvote/rounds",{list}))S.scRounds=list})}
+function openScAnnounce(closeNow){const c=S.scConf,a=curAnn()||{},T=schoolTally();let img=a.img&&a.img.url?{...a.img}:null;
+  openModal(`<h3>${closeNow?"🏁 ปิดโหวตและประกาศผู้ชนะ":"✏️ ข้อความและรูปป็อปอัพประกาศผล"}</h3>
+   ${closeNow?`<div class="notice">ระบบจะปิดโหวตทันที ผู้ชนะตอนนี้คือ <b>${T.winners.length?T.winners.map(s=>"โรงเรียน"+esc(s.n)).join(" · "):"ยังไม่มีคะแนน"}</b>${T.winners[0]?` (${fmtN(T.val(T.winners[0].id))} ${T.key==="votes"?"เสียง":"คะแนน"})`:""}</div>`:""}
+   <label for="anT">หัวข้อประกาศ<input type="text" id="anT" maxlength="80" value="${esc(a.title||"ประกาศผลโหวต"+(c.title?" "+c.title:""))}"></label>
+   <label for="anM">ข้อความ (ขึ้นบรรทัดใหม่ได้)<textarea id="anM" maxlength="600" style="min-height:110px" placeholder="เช่น ขอแสดงความยินดีกับโรงเรียนผู้ชนะ ขอบคุณทุกเสียงที่ร่วมโหวต">${esc(a.msg||"")}</textarea></label>
+   ${S.assets?`<label for="anI">รูปภาพประกอบ (ไม่บังคับ)<input type="file" id="anI" accept="image/png,image/jpeg,image/webp,image/gif"></label><div class="slipprev" id="anPrev"></div>`:'<div class="small muted">บัญชีนี้อัปโหลดรูปไม่ได้</div>'}
+   <label class="check"><input type="checkbox" id="anShow" ${a.show!==false?"checked":""}> เด้งป็อปอัพให้สมาชิกทุกคนเห็น (คนละครั้ง และเด้งใหม่เมื่อแก้ข้อความ)</label>
+   <div id="anPv" class="hide" style="border:1.5px dashed var(--line);border-radius:18px;padding:.8rem"></div>
+   <div class="err" id="anErr"></div>
+   <div class="row" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">ยกเลิก</button><button class="btn" id="anPvBtn">ดูตัวอย่าง</button><button class="btn pri" id="anOk">${closeNow?"ปิดโหวตและประกาศ":"บันทึก"}</button></div>`,
+  {wide:true,onMount:b=>{
+    const drawImg=()=>{const pv=$("#anPrev",b);if(!pv)return;pv.innerHTML=img?`<img src="${esc(img.url)}" alt="รูปประกาศ"><button type="button" class="btn sm" id="anImgX">เอารูปออก</button>`:"";const x=$("#anImgX",b);if(x)x.onclick=()=>{img=null;drawImg()}};drawImg();
+    const fi=$("#anI",b);if(fi)fi.onchange=async e=>{const f=e.target.files[0];if(!f)return;if(f.size>8*1024*1024){$("#anErr").textContent="รูปใหญ่เกิน 8MB";return}
+      $("#anPrev").innerHTML='<span class="small muted">กำลังอัปโหลดรูป…</span>';try{const r=await S.assets.upload(f);img={id:r.id,url:r.url};$("#anErr").textContent=""}catch(x){$("#anErr").textContent=x.message||"อัปโหลดรูปไม่สำเร็จ"}drawImg()};
+    const cur=()=>({title:$("#anT").value.trim(),msg:$("#anM").value.trim(),img,show:$("#anShow").checked});
+    $("#anPvBtn",b).onclick=()=>{const box=$("#anPv");const w=scWinData();box.innerHTML=winPopHTML(w.winners.length?w:{winners:T.winners.map(s=>scSnap(s,T)),top:T.ranked.slice(0,3).map(s=>scSnap(s,T)),key:T.key},cur(),scStatus()!=="end");box.classList.remove("hide");box.scrollIntoView({behavior:"smooth",block:"nearest"})};
+    $("#anOk",b).onclick=async()=>{const v=cur();if(!v.title)return $("#anErr").textContent="ใส่หัวข้อประกาศ";
+      if(closeNow&&!T.winners.length&&!await confirmBox("ยังไม่มีคะแนน","ยังไม่มีใครโหวต ปิดโหวตต่อไหม?","ปิดโหวต",true))return;
+      $("#anOk").disabled=true;const now=Date.now(),d=clone(S.scConf),old=curAnn()||{};
+      const ann={...old,...v,img:v.img?{id:v.img.id||"",url:v.img.url}:null,round:num(S.scConf.resetAt),ver:now};
+      if(closeNow){d.open=true;if(!d.endAt||d.endAt>now)d.endAt=now}
+      const willEnd=closeNow||scStatus()==="end";let entry=null;
+      if(willEnd&&(closeNow||!(old.winners&&old.winners.length))){const e=scRoundEntry(T,now);Object.assign(ann,{winners:e.winners,top:e.top,key:e.key,at:now,votes:e.votes,boost:e.boost});entry=e}
+      d.announce=ann;
+      await enqueue("schoolvote/config",async()=>{if(await safeSet("schoolvote/config",d)){S.scConf={...SC_DEFAULT,...d};invalidate();
+        logAdmin("school",closeNow?`ปิดโหวตโรงเรียนและประกาศผู้ชนะ: ${(ann.winners||[]).map(x=>x.n).join(", ")||"-"}`:"แก้ไขป็อปอัพประกาศผลโหวตโรงเรียน");
+        if(entry)await scSaveRound(entry);closeModal();toast(closeNow?"ปิดโหวตและประกาศผลแล้ว 🏆":"บันทึกประกาศแล้ว");dirty("view");
+        if(scStatus()==="end"&&ann.show!==false){lsSet("vt_scwin_"+num(d.resetAt)+"_"+now,"1");openWinPopup()}}else $("#anOk").disabled=false})}}})}
+async function saveSchools(list,msg){await enqueue("schoolvote/list",async()=>{if(await safeSet("schoolvote/list",{schools:list})){S.scList=list;invalidate();if(msg){logAdmin("school",msg);toast(msg)}dirty("view")}})}
 function openSchoolEditor(id){const s=id?S.scList.find(x=>x.id===id):{n:"",d:DISTRICTS[0],t:"ประถม"};
   openModal(`<h3>${id?"แก้ไขโรงเรียน":"เพิ่มโรงเรียน"}</h3><label for="seN">ชื่อโรงเรียน (ไม่ต้องพิมพ์คำว่าโรงเรียน)<input type="text" id="seN" maxlength="90" value="${esc(s.n)}"></label>
    <div class="grid2"><label for="seD">อำเภอ<select id="seD">${DISTRICTS.map(d=>`<option ${d===s.d?"selected":""}>${d}</option>`).join("")}</select></label><label for="seT">ประเภท<select id="seT">${SC_TYPES.map(t=>`<option ${t===s.t?"selected":""}>${t}</option>`).join("")}</select></label></div>
